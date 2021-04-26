@@ -1,0 +1,432 @@
+From c04d3db913344984585d9a2759b49bcff68a15b8 Mon Sep 17 00:00:00 2001
+From: "hank.su" <hank.su@realtek.com>
+Date: Wed, 3 Feb 2021 16:51:10 +0800
+Subject: [PATCH] Change config setting and add hw entropy
+
+---
+ include/mbedtls/config.h | 86 ++++++++++++++++++++++++------------------------
+ library/entropy_poll.c   |  4 ++-
+ 2 files changed, 46 insertions(+), 44 deletions(-)
+ mode change 100644 => 100755 include/mbedtls/config.h
+ mode change 100644 => 100755 library/entropy_poll.c
+
+diff --git a/include/mbedtls/config.h b/include/mbedtls/config.h
+old mode 100644
+new mode 100755
+index f2e9ed0..331252a
+--- a/include/mbedtls/config.h
++++ b/include/mbedtls/config.h
+@@ -132,7 +132,7 @@
+  *
+  * Comment if your system does not support time functions
+  */
+-#define MBEDTLS_HAVE_TIME
++//#define MBEDTLS_HAVE_TIME
+ 
+ /**
+  * \def MBEDTLS_HAVE_TIME_DATE
+@@ -153,7 +153,7 @@
+  * mbedtls_platform_gmtime_r() at compile-time by using the macro
+  * MBEDTLS_PLATFORM_GMTIME_R_ALT.
+  */
+-#define MBEDTLS_HAVE_TIME_DATE
++//#define MBEDTLS_HAVE_TIME_DATE
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_MEMORY
+@@ -177,7 +177,7 @@
+  *
+  * Enable this layer to allow use of alternative memory allocators.
+  */
+-//#define MBEDTLS_PLATFORM_MEMORY
++#define MBEDTLS_PLATFORM_MEMORY
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+@@ -196,7 +196,7 @@
+  * Uncomment to prevent default assignment of standard functions in the
+  * platform layer.
+  */
+-//#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
++#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_EXIT_ALT
+@@ -506,7 +506,7 @@
+  * Requires MBEDTLS_ENTROPY_C, MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
+  *
+  */
+-//#define MBEDTLS_TEST_NULL_ENTROPY
++#define MBEDTLS_TEST_NULL_ENTROPY
+ 
+ /**
+  * \def MBEDTLS_ENTROPY_HARDWARE_ALT
+@@ -805,7 +805,7 @@
+  *
+  * Comment this macro to disable deterministic ECDSA.
+  */
+-#define MBEDTLS_ECDSA_DETERMINISTIC
++//#define MBEDTLS_ECDSA_DETERMINISTIC
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
+@@ -827,7 +827,7 @@
+  *      MBEDTLS_TLS_PSK_WITH_3DES_EDE_CBC_SHA
+  *      MBEDTLS_TLS_PSK_WITH_RC4_128_SHA
+  */
+-#define MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_DHE_PSK_ENABLED
+@@ -858,7 +858,7 @@
+  *             See dhm.h for more details.
+  *
+  */
+-#define MBEDTLS_KEY_EXCHANGE_DHE_PSK_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_DHE_PSK_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+@@ -878,7 +878,7 @@
+  *      MBEDTLS_TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA
+  *      MBEDTLS_TLS_ECDHE_PSK_WITH_RC4_128_SHA
+  */
+-#define MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_RSA_PSK_ENABLED
+@@ -903,7 +903,7 @@
+  *      MBEDTLS_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA
+  *      MBEDTLS_TLS_RSA_PSK_WITH_RC4_128_SHA
+  */
+-#define MBEDTLS_KEY_EXCHANGE_RSA_PSK_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_RSA_PSK_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_RSA_ENABLED
+@@ -964,7 +964,7 @@
+  *             See dhm.h for more details.
+  *
+  */
+-#define MBEDTLS_KEY_EXCHANGE_DHE_RSA_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_DHE_RSA_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
+@@ -989,7 +989,7 @@
+  *      MBEDTLS_TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+  *      MBEDTLS_TLS_ECDHE_RSA_WITH_RC4_128_SHA
+  */
+-#define MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+@@ -1013,7 +1013,7 @@
+  *      MBEDTLS_TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA
+  *      MBEDTLS_TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+  */
+-#define MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
+@@ -1037,7 +1037,7 @@
+  *      MBEDTLS_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+  *      MBEDTLS_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+  */
+-#define MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
+@@ -1061,7 +1061,7 @@
+  *      MBEDTLS_TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256
+  *      MBEDTLS_TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384
+  */
+-#define MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
++//#define MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
+ 
+ /**
+  * \def MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED
+@@ -1094,7 +1094,7 @@
+  *
+  * Disable if you only need to support RFC 5915 + 5480 key formats.
+  */
+-#define MBEDTLS_PK_PARSE_EC_EXTENDED
++//#define MBEDTLS_PK_PARSE_EC_EXTENDED
+ 
+ /**
+  * \def MBEDTLS_ERROR_STRERROR_DUMMY
+@@ -1125,7 +1125,7 @@
+  *
+  * Enable functions that use the filesystem.
+  */
+-#define MBEDTLS_FS_IO
++//#define MBEDTLS_FS_IO
+ 
+ /**
+  * \def MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
+@@ -1138,7 +1138,7 @@
+  *
+  * Uncomment this macro to prevent loading of default entropy functions.
+  */
+-//#define MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
++#define MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
+ 
+ /**
+  * \def MBEDTLS_NO_PLATFORM_ENTROPY
+@@ -1149,7 +1149,7 @@
+  *
+  * Uncomment this macro to disable the built-in platform entropy functions.
+  */
+-//#define MBEDTLS_NO_PLATFORM_ENTROPY
++#define MBEDTLS_NO_PLATFORM_ENTROPY
+ 
+ /**
+  * \def MBEDTLS_ENTROPY_FORCE_SHA256
+@@ -1249,7 +1249,7 @@
+  *
+  * This enables support for RSAES-OAEP and RSASSA-PSS operations.
+  */
+-#define MBEDTLS_PKCS1_V21
++//#define MBEDTLS_PKCS1_V21
+ 
+ /**
+  * \def MBEDTLS_PSA_CRYPTO_SPM
+@@ -1294,7 +1294,7 @@
+  *
+  * Enable the checkup functions (*_self_test).
+  */
+-#define MBEDTLS_SELF_TEST
++//#define MBEDTLS_SELF_TEST
+ 
+ /**
+  * \def MBEDTLS_SHA256_SMALLER
+@@ -1590,7 +1590,7 @@
+  *
+  * Comment this macro to disable support for DTLS
+  */
+-#define MBEDTLS_SSL_PROTO_DTLS
++//#define MBEDTLS_SSL_PROTO_DTLS
+ 
+ /**
+  * \def MBEDTLS_SSL_ALPN
+@@ -1599,7 +1599,7 @@
+  *
+  * Comment this macro to disable support for ALPN.
+  */
+-#define MBEDTLS_SSL_ALPN
++//#define MBEDTLS_SSL_ALPN
+ 
+ /**
+  * \def MBEDTLS_SSL_DTLS_ANTI_REPLAY
+@@ -1614,7 +1614,7 @@
+  *
+  * Comment this to disable anti-replay in DTLS.
+  */
+-#define MBEDTLS_SSL_DTLS_ANTI_REPLAY
++//#define MBEDTLS_SSL_DTLS_ANTI_REPLAY
+ 
+ /**
+  * \def MBEDTLS_SSL_DTLS_HELLO_VERIFY
+@@ -1632,7 +1632,7 @@
+  *
+  * Comment this to disable support for HelloVerifyRequest.
+  */
+-#define MBEDTLS_SSL_DTLS_HELLO_VERIFY
++//#define MBEDTLS_SSL_DTLS_HELLO_VERIFY
+ 
+ /**
+  * \def MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
+@@ -1648,7 +1648,7 @@
+  *
+  * Comment this to disable support for clients reusing the source port.
+  */
+-#define MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
++//#define MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
+ 
+ /**
+  * \def MBEDTLS_SSL_DTLS_BADMAC_LIMIT
+@@ -1659,7 +1659,7 @@
+  *
+  * Requires: MBEDTLS_SSL_PROTO_DTLS
+  */
+-#define MBEDTLS_SSL_DTLS_BADMAC_LIMIT
++//#define MBEDTLS_SSL_DTLS_BADMAC_LIMIT
+ 
+ /**
+  * \def MBEDTLS_SSL_SESSION_TICKETS
+@@ -1789,7 +1789,7 @@
+  *
+  * Comment this to disable run-time checking and save ROM space
+  */
+-#define MBEDTLS_VERSION_FEATURES
++//#define MBEDTLS_VERSION_FEATURES
+ 
+ /**
+  * \def MBEDTLS_X509_ALLOW_EXTENSIONS_NON_V3
+@@ -1844,7 +1844,7 @@
+  *
+  * Comment to skip keyUsage checking for both CA and leaf certificates.
+  */
+-#define MBEDTLS_X509_CHECK_KEY_USAGE
++//#define MBEDTLS_X509_CHECK_KEY_USAGE
+ 
+ /**
+  * \def MBEDTLS_X509_CHECK_EXTENDED_KEY_USAGE
+@@ -1857,7 +1857,7 @@
+  *
+  * Comment to skip extendedKeyUsage checking for certificates.
+  */
+-#define MBEDTLS_X509_CHECK_EXTENDED_KEY_USAGE
++//#define MBEDTLS_X509_CHECK_EXTENDED_KEY_USAGE
+ 
+ /**
+  * \def MBEDTLS_X509_RSASSA_PSS_SUPPORT
+@@ -1867,7 +1867,7 @@
+  *
+  * Comment this macro to disallow using RSASSA-PSS in certificates.
+  */
+-#define MBEDTLS_X509_RSASSA_PSS_SUPPORT
++//#define MBEDTLS_X509_RSASSA_PSS_SUPPORT
+ 
+ /**
+  * \def MBEDTLS_ZLIB_SUPPORT
+@@ -1914,7 +1914,7 @@
+  *
+  * This modules adds support for the AES-NI instructions on x86-64
+  */
+-#define MBEDTLS_AESNI_C
++//#define MBEDTLS_AESNI_C
+ 
+ /**
+  * \def MBEDTLS_AES_C
+@@ -2083,7 +2083,7 @@
+  *
+  * Module:  library/blowfish.c
+  */
+-#define MBEDTLS_BLOWFISH_C
++//#define MBEDTLS_BLOWFISH_C
+ 
+ /**
+  * \def MBEDTLS_CAMELLIA_C
+@@ -2216,7 +2216,7 @@
+  *
+  * This module is used for testing (ssl_client/server).
+  */
+-#define MBEDTLS_CERTS_C
++//#define MBEDTLS_CERTS_C
+ 
+ /**
+  * \def MBEDTLS_CHACHA20_C
+@@ -2320,7 +2320,7 @@
+  * \warning   DES is considered a weak cipher and its use constitutes a
+  *            security risk. We recommend considering stronger ciphers instead.
+  */
+-#define MBEDTLS_DES_C
++//#define MBEDTLS_DES_C
+ 
+ /**
+  * \def MBEDTLS_DHM_C
+@@ -2341,7 +2341,7 @@
+  *             See dhm.h for more details.
+  *
+  */
+-#define MBEDTLS_DHM_C
++//#define MBEDTLS_DHM_C
+ 
+ /**
+  * \def MBEDTLS_ECDH_C
+@@ -2431,7 +2431,7 @@
+  *
+  * This module enables mbedtls_strerror().
+  */
+-#define MBEDTLS_ERROR_C
++//#define MBEDTLS_ERROR_C
+ 
+ /**
+  * \def MBEDTLS_GCM_C
+@@ -2445,7 +2445,7 @@
+  * This module enables the AES-GCM and CAMELLIA-GCM ciphersuites, if other
+  * requisites are enabled as well.
+  */
+-#define MBEDTLS_GCM_C
++//#define MBEDTLS_GCM_C
+ 
+ /**
+  * \def MBEDTLS_HAVEGE_C
+@@ -2613,7 +2613,7 @@
+  *
+  * This module provides networking routines.
+  */
+-#define MBEDTLS_NET_C
++//#define MBEDTLS_NET_C
+ 
+ /**
+  * \def MBEDTLS_OID_C
+@@ -2650,7 +2650,7 @@
+  *
+  * This modules adds support for the VIA PadLock on x86.
+  */
+-#define MBEDTLS_PADLOCK_C
++//#define MBEDTLS_PADLOCK_C
+ 
+ /**
+  * \def MBEDTLS_PEM_PARSE_C
+@@ -2991,7 +2991,7 @@
+  *
+  * This module is required for SSL/TLS server support.
+  */
+-#define MBEDTLS_SSL_SRV_C
++//#define MBEDTLS_SSL_SRV_C
+ 
+ /**
+  * \def MBEDTLS_SSL_TLS_C
+@@ -3052,7 +3052,7 @@
+  *
+  * This module is used by the HAVEGE random number generator.
+  */
+-#define MBEDTLS_TIMING_C
++//#define MBEDTLS_TIMING_C
+ 
+ /**
+  * \def MBEDTLS_VERSION_C
+@@ -3173,7 +3173,7 @@
+  * Module:  library/xtea.c
+  * Caller:
+  */
+-#define MBEDTLS_XTEA_C
++//#define MBEDTLS_XTEA_C
+ 
+ /* \} name SECTION: mbed TLS modules */
+ 
+diff --git a/library/entropy_poll.c b/library/entropy_poll.c
+old mode 100644
+new mode 100755
+index 4556f88..a590bae
+--- a/library/entropy_poll.c
++++ b/library/entropy_poll.c
+@@ -160,6 +160,7 @@ int mbedtls_platform_entropy_poll( void *data,
+ #endif /* !MBEDTLS_NO_PLATFORM_ENTROPY */
+ 
+ #if defined(MBEDTLS_TEST_NULL_ENTROPY)
++extern int rtw_get_random_bytes(void* dst, size_t size);
+ int mbedtls_null_entropy_poll( void *data,
+                     unsigned char *output, size_t len, size_t *olen )
+ {
+@@ -170,7 +171,8 @@ int mbedtls_null_entropy_poll( void *data,
+     if( len < sizeof(unsigned char) )
+         return( 0 );
+ 
+-    *olen = sizeof(unsigned char);
++    rtw_get_random_bytes(output,len);
++	*olen = len;
+ 
+     return( 0 );
+ }
+-- 
+2.7.4
+

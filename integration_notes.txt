@@ -1,0 +1,95 @@
+2021-02-26
+I add three files in to src/Platform which reference from ESP32 and make compile pass.
+Now the InitServer looks work, i can get "Event Received", “No Event” and “Event Timeout” from GenericPlatformManagerImpl_FreeRTOS.cpp by printf. 
+I can’t get output if use “ChipLogError”.
+
+Because i don't know how does chip example work.
+Please let me know if there is anything I need to do.
+or I will take finish src/Platform/* functions as my next goal.
+
+Thanks.
+
+
+
+
+2021-02-25
+I moved the application files back to the project_hp/Makefile.  When building the library it was trying to build everything.
+I kept the CPP options flags in place in case they are needed for building the library.  But this keeps building the library independant of the application. 
+
+in src/lib/mdns/minimal/Query.h  setting the private member mClass = to QClass::IN fails.  
+very strange because setting it to any of the other enumerated values works
+maybe a namespace thing but would seem odd since it seems to be properly namespaced. 
+Can you have a look at this further. 
+
+I got side tracked by the other side of the project for most of the afternoon:
+I solved the start if InitServer()  I got rid of 1 unresolved symbol, Yeah, but now have 5 new ones.  
+I had planned to keep going on that but got side tracked. 
+
+I think that we should put in our backlog, and maybe sooner rather than later to have all the chip #defines in a seperate part of the make file. 
+I think we may be running into issues where the app has one configuration and the library another. 
+I do think that we need to keep the build of the library and the application independant. 
+
+It's still broken but some good progress today. 
+
+
+
+
+
+2021-02-25
+1. 
+Update toolchain from 6.4.1 to 9.3.0.
+
+2. 
+I found the file which cause _EXFUN macro problem. It come from “component/soc/realtek/amebad/swlib/string/strproc.h”
+I commented codes which cause the problem. Will confirm with my colleague why define these.
+
+
+
+2021-02-24
+
+Implement AMEBADUtils.cpp basic function.
+1. Implement basic funtion, without AP mode.
+2. Need to revise behavior to match ConnectivityManagerImpl.cpp
+TODO(Hank) : Add ConnectivityManagerImpl.cpp
+
+Set $CHIPDIR in Makefile.include.gen, change repo path from here if needed.
+
+
+
+2021-02-23
+@Hank the patches Pass TestSystemTimer and TestSystemObject, and TestCHIPTLV : replace time by xTaskGetTickCount
+will not work in general for chip.  We need to be only making changes withing the src/platform/AmdbaD directory. 
+I have put up a question on one of the chip slack channels regarding making such changes.  I may have more information later today
+
+
+CHIP_ERROR PlatformManagerImpl::_InitChipStack(void)
+Wifi initialization stuff that is in main() of the example app needs to be migrated into here
+
+
+esp_event_loop_create_default
+I am thinking that there is something analogous to the default event loop for AmebaD.  
+
+esp_event_handler_register is listed as to be deprecated in the esp documentation.  
+We should discuss how the system events for wifi are handled by AmebaD SDK
+
+Updated src/platform/AmebaD to support the logging function - just uses printf()
+
+Current state is that this will build and run 
+Chip Thread Started is shown.  
+I added some debug code in the chip thread function, I could see that it was being run, but I am not getting any events. So seems to be as expected
+
+uncommenting the include server.h and appcallbacks and the 2 calls at the bottom of the ChipTest function cause the build to break. 
+
+I started by adding the server directory which then triggered a bunch of other build failures. 
+
+I am thinking the best thing to do is to go to your (Hank) gn build method, while it is a big clunky but we could be working with the more recent build of the code. 
+I have a branch in my fork which includes the Thermostat cluster which is my end game.  
+
+So the next goal is to be able to link against something that will build with all the commented out code in chipinterface.cpp
+I would suggest doing this from my fork in the tstat-ambd branch
+
+I am committing everything as is now to provide a good starting point if I don't get to work on this more tonight. 
+
+
+
+
