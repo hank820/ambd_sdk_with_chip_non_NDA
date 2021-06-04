@@ -1,4 +1,6 @@
-# ambd_sdk_with_chip_non_NDA
+# Matter (previously CHIP) on AmebaD
+
+https://github.com/hank820/connectedhomeip/tree/base0531_gn/examples/all-clusters-app/ambd
 
 Test on Ubuntu 20.04
 

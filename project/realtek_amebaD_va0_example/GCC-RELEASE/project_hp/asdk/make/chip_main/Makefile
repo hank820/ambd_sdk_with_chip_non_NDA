@@ -63,6 +63,7 @@ IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/ambd/main/include
 IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/ambd/build/chip/gen/include
 IFLAGS += -I$(CHIPDIR)/third_party/nlunit-test/repo/src
 
+
 #*****************************************************************************#
 #                               Source FILE LIST                              #
 #*****************************************************************************#
@@ -83,12 +84,14 @@ CPPSRC += $(CHIPDIR)/src/app/server/RendezvousServer.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/Mdns.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/EchoHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/OnboardingCodesUtil.cpp
+CPPSRC += $(CHIPDIR)/src/app/server/StorablePeerConnection.cpp         #Base0505
 
 CPPSRC += $(CHIPDIR)/src/app/util/af-event.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/af-main-common.cpp
-CPPSRC += $(CHIPDIR)/src/app/util/attribute-size.cpp
+CPPSRC += $(CHIPDIR)/src/app/util/attribute-size.cpp                   #Base0505 fix conflicting file name 'all-clusters-common/gen/attribute-size.cpp'
 CPPSRC += $(CHIPDIR)/src/app/util/attribute-storage.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/attribute-table.cpp
+CPPSRC += $(CHIPDIR)/src/app/util/attribute-list-byte-span.cpp         #Base0518
 CPPSRC += $(CHIPDIR)/src/app/util/binding-table.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/CHIPDeviceCallbacksMgr.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/chip-message-send.cpp
@@ -101,7 +104,7 @@ CPPSRC += $(CHIPDIR)/src/app/util/process-cluster-message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/process-global-message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/util.cpp
 
-CPPSRC += $(CHIPDIR)/src/app/clusters/on-off-server/on-off.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/on-off-server/on-off-server.cpp                                         #Base0429
 CPPSRC += $(CHIPDIR)/src/app/clusters/level-control/level-control.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/identify/identify.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/barrier-control-server/barrier-control-server.cpp
@@ -122,10 +125,19 @@ CPPSRC += $(CHIPDIR)/src/app/clusters/general-commissioning-server/general-commi
 CPPSRC += $(CHIPDIR)/src/app/clusters/low-power-server/low-power-server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissioning.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissioning-ember.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/descriptor/descriptor.cpp                                               #Base0429
+CPPSRC += $(CHIPDIR)/src/app/clusters/operational-credentials-server/operational-credentials-server.cpp       #Base0429 + #Base0505
+CPPSRC += $(CHIPDIR)/src/app/clusters/ota-server/ota-server.cpp                                               #Base0429
+CPPSRC += $(CHIPDIR)/src/app/clusters/test-cluster-server/test-cluster-server.cpp                             #Base0505
+CPPSRC += $(CHIPDIR)/src/app/clusters/trusted-root-certificates-server/trusted-root-certificates-server.cpp   #Base0518
+CPPSRC += $(CHIPDIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp                     #Base0531
 
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
 
+#copy from examples/all-clusters-app/all-clusters-common/gen/attribute-size.cpp
+#Resolved same file name issue. (src/app/util/attribute-size.cpp)
+CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/attribute-size_copy.cpp                #Base0429 + Base0505
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClientCallbacks.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/call-command-handler.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/callback-stub.cpp

@@ -5,7 +5,7 @@ include $(MAKE_INCLUDE_GEN)
 #*****************************************************************************#
 #                               VARIABLES	                              #
 #*****************************************************************************#
-DIR = $(BASEDIR)/../connectedhomeip/third_party/mbedtls/repo/library
+DIR = $(CHIPDIR)/third_party/mbedtls/repo/library
 
 vpath %.c $(DIR) $(shell find $(DIR) -type d) $(DIR_RAMMAP) $(shell find $(DIR_RAMMAP) -type d)
 

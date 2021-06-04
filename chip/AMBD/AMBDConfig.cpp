@@ -78,6 +78,9 @@ const AMBDConfig::Key AMBDConfig::kConfigKey_OperationalDeviceId         = { kCo
 const AMBDConfig::Key AMBDConfig::kConfigKey_OperationalDeviceCert       = { kConfigNamespace_ChipConfig, "op-device-cert" };
 const AMBDConfig::Key AMBDConfig::kConfigKey_OperationalDeviceICACerts   = { kConfigNamespace_ChipConfig, "op-device-ca-certs" };
 const AMBDConfig::Key AMBDConfig::kConfigKey_OperationalDevicePrivateKey = { kConfigNamespace_ChipConfig, "op-device-key" };
+const AMBDConfig::Key AMBDConfig::kConfigKey_RegulatoryLocation          = { kConfigNamespace_ChipConfig, "regulatory-location" };
+const AMBDConfig::Key AMBDConfig::kConfigKey_CountryCode                 = { kConfigNamespace_ChipConfig, "country-code" };
+const AMBDConfig::Key AMBDConfig::kConfigKey_Breadcrumb                  = { kConfigNamespace_ChipConfig, "breadcrumb" };
 
 // Prefix used for NVS keys that contain Chip group encryption keys.
 const char AMBDConfig::kGroupKeyNamePrefix[] = "gk-";
