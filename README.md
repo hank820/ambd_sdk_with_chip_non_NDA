@@ -21,9 +21,11 @@ git clone https://github.com/hank820/ambd_sdk_with_chip_non_NDA.git
 # Get chip SDK 
 cd ambd_sdk/
 
-git clone --recurse-submodules -b base0405_gn https://github.com/hank820/connectedhomeip.git
+git clone --recurse-submodules -b base0531_gn https://github.com/hank820/connectedhomeip.git
 
 cd connectedhomeip/src/platform
+
+unlink AMBD 
 
 ln -s ../../../ambd_sdk_with_chip_non_NDA/chip/AMBD
 
@@ -64,11 +66,19 @@ ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/projec
 ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km0_km4_image2.bin
 
 # Run all-cluster-app example
-enter "ATS$" in console
+enter command in console
+
+ATW0=testAP
+
+ATW1=password
+
+ATWC
+
+ATS$ => Run chip task
 
 
-# Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/base0405_gn/examples/chip-tool)
-Use standalone chip-tool app to communicate with the device.
+# Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/base0531_gn/examples/chip-tool)
+Use standalone chip-tool app(linux) to communicate with the device.
 
 ./chip-tool pairing bypass 192.168.0.xxx 11097  (AmebaD IP)
 
