@@ -1,10 +1,13 @@
 # Matter (previously CHIP) on AmebaD
 
-https://github.com/hank820/connectedhomeip/tree/base0531_gn/examples/all-clusters-app/ambd
+# CHIP Ameba-D All Clusters Example
+
+https://github.com/hank820/connectedhomeip/tree/base0608_gn/examples/all-clusters-app/ambd
+
+# Folder Structure
 
 Test on Ubuntu 20.04
 
-# Folder Structure
 ambd_sdk/
 
 ├── ambd_sdk_with_chip_non_NDA
@@ -21,7 +24,7 @@ git clone https://github.com/hank820/ambd_sdk_with_chip_non_NDA.git
 # Get chip SDK 
 cd ambd_sdk/
 
-git clone --recurse-submodules -b base0531_gn https://github.com/hank820/connectedhomeip.git
+git clone --recurse-submodules -b base0608_gn https://github.com/hank820/connectedhomeip.git
 
 cd connectedhomeip/src/platform
 
@@ -77,7 +80,7 @@ ATWC
 ATS$ => Run chip task
 
 
-# Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/base0531_gn/examples/chip-tool)
+# Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/base0608_gn/examples/chip-tool)
 Use standalone chip-tool app(linux) to communicate with the device.
 
 ./chip-tool pairing bypass 192.168.0.xxx 11097  (AmebaD IP)

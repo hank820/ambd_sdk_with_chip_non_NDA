@@ -139,7 +139,7 @@ CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
 #Resolved same file name issue. (src/app/util/attribute-size.cpp)
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/attribute-size_copy.cpp                #Base0429 + Base0505
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClientCallbacks.cpp
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/call-command-handler.cpp
+#CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/call-command-handler.cpp              #Base0608
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/callback-stub.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/IMClusterCommandHandler.cpp
 
