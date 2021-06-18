@@ -2,73 +2,93 @@
 
 ## CHIP Ameba-D All Clusters Example
 
-README
+    README
 
-https://github.com/hank820/connectedhomeip/tree/base0608_gn/examples/all-clusters-app/ambd
+    https://github.com/hank820/connectedhomeip/tree/base0617_gn/examples/all-clusters-app/ambd
 
 
 ## Get amebaD SDK & Matter SDK
 
-Test on Ubuntu 20.04
+    Test on Ubuntu 20.04
 
 git clone --recurse-submodules https://github.com/hank820/ambd_sdk_with_chip_non_NDA.git
 
 
-## Set Matter build environment 
+## Set Matter Build Environment 
 
-cd third_party/connectedhomeip
+    cd third_party/connectedhomeip
 
-source scripts/bootstrap.sh
+    source scripts/bootstrap.sh
 
-source scripts/activate.sh
+    source scripts/activate.sh
 
- > Find more details to setup linux build environment
- > https://github.com/hank820/connectedhomeip/blob/base0405_gn/docs/BUILDING.md
+    > Find more details to setup linux build environment
+    > https://github.com/hank820/connectedhomeip/blob/master/docs/BUILDING.md
 
 
-## Make little CPU
-cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp
+## Make Little CPU
+    cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp
 
-make all
-
+    make all
 
 ## Make CHIP library by gn and Make lib_main.a
 
-cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
+    cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
 
-make -C asdk lib_all
+    make -C asdk lib_all
 
-output : ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/lib/application
+    
 
-## Make big CPU
-cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
+### CHIP core (generate by GN/ninja in connectedhomeip. Config by [chip/Makefile](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/blob/main/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/make/chip/Makefile))
 
-make all
+    output : ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/lib/application
 
-## Flash image
-ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/asdk/image/km0_boot_all.bin
+    > libCHIP.a, ibCoreTests.a, ibChipCryptoTests.a, ibRawTransportTests.a...
 
-ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km4_boot_all.bin
+### CHIP application (generate by [chip_main/Makefile](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/blob/main/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/make/chip_main/Makefile))
 
-ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km0_km4_image2.bin
+    output : ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/lib/application
 
-## Run all-cluster-app example
-enter command in console
+    > lib_main.a
 
-ATW0=testAP
+## Make Big CPU
+    cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
 
-ATW1=password
+    make all
 
-ATWC
+## Flash Image
+    ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/asdk/image/km0_boot_all.bin
 
-ATS$ => Run chip task
+    ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km4_boot_all.bin
+
+    ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km0_km4_image2.bin
+
+## Run CHIP task on Ameba D (all-cluster-app example)
+    enter command in console
+
+    ATW0=testAP
+
+    ATW1=password
+
+    ATWC
+
+    ATS$ => Run chip task
 
 
-## Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/base0608_gn/examples/chip-tool)
+## Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/master/examples/chip-tool)
 Use standalone chip-tool app(linux) to communicate with the device.
 
-./chip-tool pairing bypass 192.168.0.xxx 11097  (AmebaD IP)
+`./chip-tool pairing bypass 192.168.0.xxx 11097  (AmebaD IP)`
 
-./chip-tool onoff on 1
+<b>onoff cluster</b>
 
-./chip-tool onoff off 1
+`./chip-tool onoff on 1`
+
+`./chip-tool onoff off 1`
+    
+<b>doorlock cluster</b>
+
+`./chip-tool doorlock lock-door 1 1`
+    
+`./chip-tool doorlock unlock-door 1 1`
+

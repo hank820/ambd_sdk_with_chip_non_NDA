@@ -3,6 +3,10 @@
 
 #define CONFIG_PLATFORM_AMEBA_X 1
 
+#if CHIP_PROJECT
+#define STD_PRINTF 1
+#endif
+
 #if defined (__IARSTDLIB__)
 	#include <stdio.h>
 	#include <stdlib.h>
@@ -156,6 +160,10 @@ extern time_t _time( time_t * tloc );
 
 #ifdef srand
     #undef srand
+#endif
+
+#ifdef s8
+    #undef s8
 #endif
 
 #ifdef u32
