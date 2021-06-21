@@ -30,6 +30,8 @@ git clone --recurse-submodules https://github.com/hank820/ambd_sdk_with_chip_non
     cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp
 
     make all
+    
+    output : project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/asdk/image/km0_boot_all.bin
 
 ## Make CHIP library by gn and Make lib_main.a
 
@@ -55,13 +57,19 @@ git clone --recurse-submodules https://github.com/hank820/ambd_sdk_with_chip_non
     cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
 
     make all
+    
+    output : 
 
-## Flash Image
-    ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/asdk/image/km0_boot_all.bin
+    project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km4_boot_all.bin
+    
+    project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km0_km4_image2.bin
 
-    ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km4_boot_all.bin
+## Flash Image on AmebaD EVB
 
-    ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/km0_km4_image2.bin
+Please refer [Application Note](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/blob/master/doc/AN0400%20Ameba-D%20Application%20Note%20v14.pdf) Chapter 8 : Image Tool
+
+    Image Tool Path : $(SDK_ROOT)/tools/AmebaD/Image_Tool/
+    
 
 ## Run CHIP task on Ameba D (all-cluster-app example)
     enter command in console
