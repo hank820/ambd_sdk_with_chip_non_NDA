@@ -11,8 +11,13 @@
 
     Test on Ubuntu 20.04
 
-git clone --recurse-submodules https://github.com/hank820/ambd_sdk_with_chip_non_NDA.git
+To check out this repository:
 
+    git clone --recurse-submodules https://github.com/hank820/ambd_sdk_with_chip_non_NDA.git
+
+If you already have a checkout, run the following command to sync submodules recursively:
+
+	git submodule update --init --recursive
 
 ## Set Matter Build Environment 
 
