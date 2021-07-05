@@ -143,7 +143,7 @@ extern time_t _time( time_t * tloc );
     typedef __uint32_t in_addr_t;
 #endif
 
-#define time _time
+//#define time _time
 
 //undef
 #ifdef strtok

@@ -49,7 +49,6 @@ CSRC = $(DIR)/aes.c			\
 	   $(DIR)/md4.c			\
 	   $(DIR)/md5.c			\
 	   $(DIR)/md.c			\
-	   $(DIR)/md_wrap.c			\
        $(DIR)/memory_buffer_alloc.c	\
        $(DIR)/net_sockets.c		\
        $(DIR)/nist_kw.c		\
