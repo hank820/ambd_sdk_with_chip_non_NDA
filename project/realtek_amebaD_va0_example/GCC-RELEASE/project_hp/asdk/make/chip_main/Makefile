@@ -92,13 +92,15 @@ CPPSRC += $(CHIPDIR)/src/app/Command.cpp
 CPPSRC += $(CHIPDIR)/src/app/CommandHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/CommandSender.cpp
 CPPSRC += $(CHIPDIR)/src/app/decoder.cpp
-CPPSRC += $(CHIPDIR)/src/app/encoder.cpp
+CPPSRC += $(CHIPDIR)/src/app/encoder-common.cpp
+CPPSRC += $(CHIPDIR)/src/app/EventManagement.cpp
 CPPSRC += $(CHIPDIR)/src/app/InteractionModelEngine.cpp
 CPPSRC += $(CHIPDIR)/src/app/ReadClient.cpp
 CPPSRC += $(CHIPDIR)/src/app/ReadHandler.cpp
+CPPSRC += $(CHIPDIR)/src/app/WriteClient.cpp
+CPPSRC += $(CHIPDIR)/src/app/WriteHandler.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/server/Server.cpp
-CPPSRC += $(CHIPDIR)/src/app/server/DataModelHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/RendezvousServer.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/Mdns.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/EchoHandler.cpp
@@ -107,7 +109,6 @@ CPPSRC += $(CHIPDIR)/src/app/server/StorablePeerConnection.cpp         #Base0505
 
 CPPSRC += $(CHIPDIR)/src/app/util/af-event.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/af-main-common.cpp
-CPPSRC += $(CHIPDIR)/src/app/util/attribute-size.cpp                   #Base0505 fix conflicting file name 'all-clusters-common/gen/attribute-size.cpp'
 CPPSRC += $(CHIPDIR)/src/app/util/attribute-storage.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/attribute-table.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/attribute-list-byte-span.cpp         #Base0518
@@ -116,6 +117,7 @@ CPPSRC += $(CHIPDIR)/src/app/util/binding-table.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/CHIPDeviceCallbacksMgr.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/chip-message-send.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/client-api.cpp
+CPPSRC += $(CHIPDIR)/src/app/util/DataModelHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/ember-compatibility-functions.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/ember-print.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/esi-management.cpp
@@ -147,23 +149,24 @@ CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissionin
 CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissioning-ember.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/descriptor/descriptor.cpp                                               #Base0429
 CPPSRC += $(CHIPDIR)/src/app/clusters/operational-credentials-server/operational-credentials-server.cpp       #Base0429 + #Base0505
-CPPSRC += $(CHIPDIR)/src/app/clusters/ota-provider/ota-provider.cpp                                              #Base0429
+CPPSRC += $(CHIPDIR)/src/app/clusters/ota-provider/ota-provider.cpp                                           #Base0429 + #base0703
 CPPSRC += $(CHIPDIR)/src/app/clusters/test-cluster-server/test-cluster-server.cpp                             #Base0505
 #CPPSRC += $(CHIPDIR)/src/app/clusters/trusted-root-certificates-server/trusted-root-certificates-server.cpp   #Base0518 + Base0614
 CPPSRC += $(CHIPDIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp                     #Base0531
-CPPSRC += $(CHIPDIR)/src/app/clusters/pump-configuration-and-control-server/pump-configuration-and-control-server.cpp #Base0622
+CPPSRC += $(CHIPDIR)/src/app/clusters/pump-configuration-and-control-server/pump-configuration-and-control-server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/diagnostic-logs-server/diagnostic-logs-server.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
+CPPSRC += $(CHIPDIR)/src/app/reporting/Engine.cpp
 
-#copy from examples/all-clusters-app/all-clusters-common/gen/attribute-size.cpp
-#Resolved same file name issue. (src/app/util/attribute-size.cpp)
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/attribute-size_copy.cpp                #Base0429 + Base0505
+CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/attribute-size.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClientCallbacks.cpp
 #CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/call-command-handler.cpp              #Base0608
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/callback-stub.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/IMClusterCommandHandler.cpp
+CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/encoder.cpp
+CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClusters.cpp
 
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/chipinterface.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/DeviceCallbacks.cpp
