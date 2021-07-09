@@ -171,6 +171,8 @@ CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClust
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/chipinterface.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/DeviceCallbacks.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/CHIPDeviceManager.cpp
+CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/Globals.cpp
+CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/LEDWidget.cpp
 
 #*****************************************************************************#
 #                               Object FILE LIST                              #
