@@ -39,12 +39,15 @@ If you already have a checkout, run the following command to sync submodules rec
     output : project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/asdk/image/km0_boot_all.bin
 
 ## Make CHIP library by gn and Make lib_main.a
+### all-cluster-app
 
     cd ambd_sdk_with_chip_non_NDA/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
-
     make -C asdk lib_all
 
-    
+### lighting-app
+
+    cd ambd_sdk_with_chip/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp
+    make -C asdk light
 
 ### CHIP core (generate by GN/ninja in connectedhomeip. Config by [chip/Makefile](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/blob/main/project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/make/chip/Makefile))
 
@@ -91,9 +94,11 @@ Please refer [Application Note](https://github.com/hank820/ambd_sdk_with_chip_no
 ## Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/master/examples/chip-tool)
 Use standalone chip-tool app(linux) to communicate with the device.
 
-`./chip-tool pairing bypass 192.168.0.xxx 11097  (AmebaD IP)`
+`./chip-tool pairing bypass 192.168.xxx.xxx 11097  (AmebaD IP)`
 
 <b>onoff cluster</b>
+
+Use PB_5 as output, connect a LED to this pin and GND.
 
 `./chip-tool onoff on 1`
 
