@@ -93,6 +93,7 @@ CONFIG_TOOLCHAIN_LD_GCC=y
 TOOL_PREFIX = arm-none-eabi-
 
 CC = $(tool_dir)/$(TOOL_PREFIX)gcc
+CPP = $(tool_dir)/$(TOOL_PREFIX)g++
 AS = $(tool_dir)/$(TOOL_PREFIX)as
 AR = $(tool_dir)/$(TOOL_PREFIX)ar
 #LD = $(tool_dir)/$(TOOL_PREFIX)ld
@@ -344,11 +345,11 @@ GLOBAL_CFLAGS += -nostartfiles
 GLOBAL_CFLAGS += -nostdlib
 GLOBAL_CFLAGS += -Wall
 GLOBAL_CFLAGS += -Wpointer-arith
-GLOBAL_CFLAGS += -Wstrict-prototypes
-GLOBAL_CFLAGS += -Wundef
+#GLOBAL_CFLAGS += -Wstrict-prototypes
+#GLOBAL_CFLAGS += -Wundef
 GLOBAL_CFLAGS += -Wno-write-strings
 GLOBAL_CFLAGS += -Wno-maybe-uninitialized
-GLOBAL_CFLAGS += --save-temps
+#GLOBAL_CFLAGS += --save-temps
 GLOBAL_CFLAGS += -c
 GLOBAL_CFLAGS += -MMD
 
@@ -363,10 +364,14 @@ GLOBAL_CFLAGS += -DCONFIG_FUNCION_O0_OPTIMIZE
 GLOBAL_CFLAGS += -DDM_ODM_SUPPORT_TYPE=32
 
 CPPFLAGS = $(GLOBAL_CFLAGS)
-CPPFLAGS += -std=c++11 -fno-use-cxa-atexit
+#CPPFLAGS += -std=c++11 -fno-use-cxa-atexit
 
 #CHIP_PROJECT ADD
 GLOBAL_CFLAGS += -DMBEDTLS_CONFIG_FILE=\"mbedtls/mbedtls_config.h\"
+GLOBAL_CFLAGS += -DLWIP_IPV6_ROUTE_TABLE_SUPPORT=1
+CPPFLAGS += -std=gnu++11
+CPPFLAGS += -std=c++14
+CPPFLAGS += -fno-rtti
 #CHIP_PROJECT END
 
 ifeq (${BUILD_TYPE},MFG)
@@ -520,7 +525,7 @@ NETWORK_RENAME_CODE2SRAM:
 #              RULES TO GENERATE OBJECT FILE FROM .CPP FILE                   #
 #*****************************************************************************#
 %.o:%.cpp
-	$(CC) -ffunction-sections $(CPPFLAGS) $(MODULE_IFLAGS) $< -o $@
+	$(CPP) -ffunction-sections $(CPPFLAGS) $(MODULE_IFLAGS) $< -o $@
 
 #*****************************************************************************#
 #              RULES TO GENERATE OBJECT FILE FROM .S FILE                     #

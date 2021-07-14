@@ -3,6 +3,10 @@
 
 #define CONFIG_PLATFORM_AMEBA_X 1
 
+#if CHIP_PROJECT
+#define STD_PRINTF 1
+#endif
+
 #if defined (__IARSTDLIB__)
 	#include <stdio.h>
 	#include <stdlib.h>
@@ -51,7 +55,9 @@
 	#undef strpbrk
 	#undef strtoul
 	#undef strtol
+#ifndef __cplusplus
 	#undef rand
+#endif
 #ifndef STD_PRINTF
 	#define printf						_rtl_printf
 	#define sprintf						_rtl_sprintf
@@ -96,10 +102,85 @@
 extern void *pvPortMalloc( size_t xWantedSize );
 extern void vPortFree( void *pv );
 extern void *pvPortReAlloc( void *pv,  size_t xWantedSize );
+extern void *pvPortCalloc(size_t xWantedCnt, size_t xWantedSize);
 #define malloc                  pvPortMalloc
 #define free                    vPortFree
 #define realloc			pvPortReAlloc
-#define calloc			rtw_calloc
+#define calloc			pvPortCalloc
 
+#if CHIP_PROJECT
+#include <sys/time.h>
+#include <assert.h>
+
+extern char * _strtok_r(register char *s , register const char *delim , char **lasts);
+extern int _nanosleep( const struct timespec * rqtp, struct timespec * rmtp );
+extern int _vTaskDelay( const TickType_t xTicksToDelay );
+extern time_t _time( time_t * tloc );
+
+//def
+#ifndef false
+    #define false   0
+#endif
+
+#ifndef true
+    #define true    1
+#endif
+
+#ifndef strtok_r
+    #define strtok_r(s, delim, lasts)	  _strtok_r (s, delim, lasts)
+#endif
+
+#ifndef usleep
+    #define usleep(x)    _vTaskDelay(x)
+#endif
+
+#ifndef nanosleep
+    #define nanosleep    _nanosleep
+#endif
+
+#ifndef in_addr_t
+    typedef __uint32_t in_addr_t;
+#endif
+
+//#define time _time
+
+//undef
+#ifdef strtok
+    #undef strtok
+#endif
+
+#ifdef strtol
+    #undef strtol
+#endif
+
+#ifdef rand
+    #undef rand
+#endif
+
+#ifdef srand
+    #undef srand
+#endif
+
+#ifdef s8
+    #undef s8
+#endif
+
+#ifdef u32
+    #undef u32
+#endif
+
+#ifdef u64
+    #undef u64
+#endif
+
+#ifdef IN
+    #undef IN
+#endif
+
+#ifdef vsnprintf
+	#undef vsnprintf
+#endif
+
+#endif //CHIP_PROJECT
 
 #endif // PLATFORM_STDLIB_8721D_H

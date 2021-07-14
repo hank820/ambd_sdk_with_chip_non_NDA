@@ -10,6 +10,10 @@
 #ifndef LWIP_HDR_LWIPOPTS_H
 #define LWIP_HDR_LWIPOPTS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <platform/platform_stdlib.h>
 #include "platform_opts.h"
 #define WIFI_LOGO_CERTIFICATION_CONFIG 0    //for ping 10k test buffer setting
@@ -393,7 +397,7 @@ Certain platform allows computing and verifying the IP, UDP, TCP and ICMP checks
 #define LWIP_AUTOIP                     1
 #define TCPIP_THREAD_NAME              "TCP_IP" 
 
-#define LWIP_IPV6                       0
+#define LWIP_IPV6                       1
 #if LWIP_IPV6
 #undef  MEMP_NUM_SYS_TIMEOUT
 #define MEMP_NUM_SYS_TIMEOUT            13
@@ -423,5 +427,9 @@ Certain platform allows computing and verifying the IP, UDP, TCP and ICMP checks
 #endif 
 
 #include "lwip/init.h"                  //for version control
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LWIP_HDR_LWIPOPTS_H */

@@ -21,6 +21,7 @@ CSRC +=  \
 	$(DIR)/http_client.c \
 	$(DIR)/xml.c \
 	$(DIR)/cJSON.c \
+	$(DIR)/chip_porting.c \
 	#$(DIR)/webserver.c
 
 #*****************************************************************************#

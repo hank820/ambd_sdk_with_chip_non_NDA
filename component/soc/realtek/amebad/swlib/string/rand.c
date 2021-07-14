@@ -9,6 +9,7 @@
 
 #include "ameba_soc.h"
 
+#ifndef __cplusplus
 HAL_ROM_BSS_SECTION u32 rand_seed[4]; //z1, z2, z3, z4, 
 HAL_ROM_BSS_SECTION u32 rand_first;
 
@@ -75,4 +76,4 @@ int RandBytes_Get(void *buf, u32 len)
 	
 	return 0;
 }
-
+#endif

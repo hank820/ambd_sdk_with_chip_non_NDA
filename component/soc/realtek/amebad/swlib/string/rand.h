@@ -10,9 +10,10 @@
 extern u32 rand_seed[4]; //z1, z2, z3, z4, 
 extern u32 rand_first;
 
+#ifndef __cplusplus
 u32
 Rand (
  VOID
 );
-
+#endif
 
