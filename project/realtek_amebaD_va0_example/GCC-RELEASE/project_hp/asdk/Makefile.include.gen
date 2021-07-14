@@ -20,6 +20,7 @@ INCDIR		=$(ROOTDIR)/../../../inc/inc_hp
 BASEDIR		= $(ROOTDIR)/../../../../..
 KM0_BUILDDIR	= $(ROOTDIR)/../../project_lp
 KM4_BUILDDIR	= $(ROOTDIR)/../../project_hp
+CHIPDIR         =$(BASEDIR)/../connectedhomeip
 
 TARGETDIR	=$(BASEDIR)/component/soc/realtek/amebad
 BOOTLOADER	=$(BASEDIR)/component/soc/realtek/amebad/bootloader
@@ -34,7 +35,7 @@ TOOLCHAINDIR	= $(ROOTDIR)/../toolchain
 OSDIR		= $(BASEDIR)/component/os
 FREERTOSDIR	= $(BASEDIR)/component/os/freertos/freertos_v10.2.0/Source
 SSLDIR		 = $(BASEDIR)/component/common/network/ssl/polarssl-1.3.8
-MBEDTLSDIR	 = $(BASEDIR)/component/common/network/ssl/mbedtls-2.4.0
+MBEDTLSDIR	 = $(CHIPDIR)/third_party/mbedtls/repo/
 
 #ROM code folder
 CMSISMATHLIBDIR  = $(BASEDIR)/component/soc/realtek/8711b/fwlib/test/ft_test/cmsis_math
@@ -222,7 +223,10 @@ IFLAGS               += -I$(BASEDIR)/component/common/network/ssl/polarssl-1.3.8
 IFLAGS               += -I$(BASEDIR)/component/common/network/ssl/ssl_ram_map/rom
 
 #MBEDTLS
-IFLAGS               += -I$(BASEDIR)/component/common/network/ssl/mbedtls-2.4.0/include
+IFLAGS               += -I$(CHIPDIR)/third_party/mbedtls/repo/include
+IFLAGS               += -I$(CHIPDIR)/third_party/mbedtls/repo/include/mbedtls
+#mbedtlc_config
+IFLAGS               += -I$(CHIPDIR)/config/ambd
 IFLAGS               += -I$(BASEDIR)/component/common/network/ssl/mbedtls_ram_map/rom
 IFLAGS               += -I$(BASEDIR)/component/common/application/amazon/amazon-freertos/lib/include/private
 
@@ -358,6 +362,10 @@ GLOBAL_CFLAGS += -DDM_ODM_SUPPORT_TYPE=32
 
 CPPFLAGS = $(GLOBAL_CFLAGS)
 CPPFLAGS += -std=c++11 -fno-use-cxa-atexit
+
+#CHIP_PROJECT ADD
+GLOBAL_CFLAGS += -DMBEDTLS_CONFIG_FILE=\"mbedtls/mbedtls_config.h\"
+#CHIP_PROJECT END
 
 ifeq (${BUILD_TYPE},MFG)
 GLOBAL_CFLAGS += -DCONFIG_BT_MP
