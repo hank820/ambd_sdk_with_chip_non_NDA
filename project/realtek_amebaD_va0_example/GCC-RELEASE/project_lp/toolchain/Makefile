@@ -19,9 +19,12 @@ all:
 ifneq ($(CONFIG_TOOLCHAIN_ARM_GCC), y)
 ifeq ($(COMPILEOS),$(LINUX_OS))
 	$(MKDIR) -p linux
-	cat $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2* > $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2
-	tar -jxvf $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2 -C linux/
-	rm $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2
+	#cat $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2* > $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2
+	#tar -jxvf $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2 -C linux/
+	#rm $(KM4_BUILDDIR)/toolchain/asdk/asdk-6.4.1-linux-newlib-build-3026-x86_64.tar.bz2
+	cat $(KM4_BUILDDIR)/toolchain/asdk/asdk-9.3.0-linux-newlib-build-3483-x86_64.tar.bz2.part* > $(KM4_BUILDDIR)/toolchain/asdk/asdk-9.3.0-linux-newlib-build-3483-x86_64.tar.bz2
+	tar -jxvf $(KM4_BUILDDIR)/toolchain/asdk/asdk-9.3.0-linux-newlib-build-3483-x86_64.tar.bz2 -C linux/
+	rm $(KM4_BUILDDIR)/toolchain/asdk/asdk-9.3.0-linux-newlib-build-3483-x86_64.tar.bz2
 
 	#LZM for GCC Server build & Cygwin Download
 	#$(MKDIR) -p cygwin

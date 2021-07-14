@@ -51,5 +51,11 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+#Ameba
 *.i
 *.s
+project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/asdk/image/
+project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/asdk/image/
+project/realtek_amebaD_va0_example/GCC-RELEASE/project_lp/toolchain/linux/asdk-9.3.0/
+project/realtek_amebaD_va0_example/GCC-RELEASE/project_hp/toolchain/linux/asdk-9.3.0/
+
