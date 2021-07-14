@@ -1,1 +1,2 @@
-# ambd_sdk_with_chip_new
+# ambd_sdk_with_chip
+ambd_sdk_with_chip
