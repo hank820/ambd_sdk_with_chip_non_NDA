@@ -109,8 +109,7 @@ a lot of data that needs to be copied, this should be set high. */
 #endif
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
-#define PBUF_POOL_BUFSIZE       508
-
+#define PBUF_POOL_BUFSIZE       1280
 
 /* ---------- TCP options ---------- */
 #define LWIP_TCP                1
@@ -386,7 +385,12 @@ Certain platform allows computing and verifying the IP, UDP, TCP and ICMP checks
 /* Added by Realtek end */
 
 /* Extra options for lwip_v2.0.2 which should not affect lwip_v1.4.1 */
-#define LWIP_TCPIP_CORE_LOCKING         0
+#define LWIP_TCPIP_CORE_LOCKING         1
+#define LWIP_COMPAT_MUTEX_ALLOWED       1
+#define LWIP_IPV6_ND                    0
+#define LWIP_IPV6_SCOPES                0
+#define LWIP_PBUF_FROM_CUSTOM_POOLS     0
+
 #define ERRNO   1
 #define LWIP_TCPIP_TIMEOUT              1
 #define LWIP_SO_RCVTIMEO                1

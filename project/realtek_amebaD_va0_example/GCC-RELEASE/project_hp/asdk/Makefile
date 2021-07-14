@@ -131,6 +131,9 @@ image2_ns:LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_wlan.a $(ROOTDIR)/lib/a
 mp_image2_ns:LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_wlan_mp.a $(ROOTDIR)/lib/application/lib_wps.a
 endif
 
+LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_main.a
+LINK_APP_LIB += $(ROOTDIR)/lib/application/libCHIP.a
+
 ifeq ($(CONFIG_LINKKIT_AWSS), y)
 LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_aliiot.a
 endif

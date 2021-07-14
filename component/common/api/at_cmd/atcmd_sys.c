@@ -891,6 +891,15 @@ void fATSM(void *arg)
 }
 #endif
 
+extern void ChipTest(void);
+void fATchipapp(void *arg)
+{
+	(void) arg;
+
+	printf("Chip Test:\r\n");
+	ChipTest();
+}
+
 void fATSt(void *arg)
 {
 	/* To avoid gcc warnings */
@@ -1540,6 +1549,7 @@ log_item_t at_sys_items[] = {
 	{"ATS@", fATSs,{NULL,NULL}},	// Debug message setting
 	{"ATS!", fATSc,{NULL,NULL}},	// Debug config setting
 	{"ATS#", fATSt,{NULL,NULL}},	// test command
+	{"ATS$", fATchipapp, {NULL, NULL}},
 	{"ATS?", fATSx,{NULL,NULL}},	// Help
 #elif ATCMD_VER == ATVER_2 //#if ATCMD_VER == ATVER_1
 	{"AT", 	 fATS0,},	// test AT command ready
