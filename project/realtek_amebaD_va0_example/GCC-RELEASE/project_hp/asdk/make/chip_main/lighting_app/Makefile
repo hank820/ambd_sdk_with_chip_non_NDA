@@ -125,6 +125,7 @@ CPPSRC += $(CHIPDIR)/src/app/util/message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/process-cluster-message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/process-global-message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/util.cpp
+CPPSRC += $(CHIPDIR)/src/app/util/error-mapping.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/clusters/basic/basic.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/bindings/bindings.cpp
@@ -135,6 +136,9 @@ CPPSRC += $(CHIPDIR)/src/app/clusters/operational-credentials-server/operational
 CPPSRC += $(CHIPDIR)/src/app/clusters/level-control/level-control.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissioning.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissioning-ember.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/color-control-server/color-control-server.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/ethernet_network_diagnostics_server/ethernet_network_diagnostics_server.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
