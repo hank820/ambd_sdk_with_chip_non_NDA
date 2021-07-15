@@ -48,7 +48,7 @@
 /******************************************************************************/
 
 /**
-* For common flash usage  
+* For common flash usage
 */
 #define AP_SETTING_SECTOR		0x000FE000
 #define UART_SETTING_SECTOR		0x000FC000
@@ -56,7 +56,7 @@
 #if defined(CONFIG_BAIDU_DUER) && CONFIG_BAIDU_DUER
 #define FAST_RECONNECT_DATA 	0x1FF000
 #else
-#define FAST_RECONNECT_DATA 	0x105000
+#define FAST_RECONNECT_DATA 	0x1EF000
 #endif
 #define CONFIG_ENABLE_RDP		0
 
@@ -96,7 +96,7 @@
 #define CONFIG_WIFI_IND_USE_THREAD	1
 #endif
 #if (CONFIG_ENABLE_P2P && ((CONFIG_ENABLE_WPS_AP == 0) || (CONFIG_ENABLE_WPS == 0)))
-#error "If CONFIG_ENABLE_P2P, need to define CONFIG_ENABLE_WPS_AP 1" 
+#error "If CONFIG_ENABLE_P2P, need to define CONFIG_ENABLE_WPS_AP 1"
 #endif
 
 /* For SSL/TLS */
@@ -121,7 +121,7 @@
 
 #define CONFIG_GAGENT			0
 /*Disable CONFIG_EXAMPLE_WLAN_FAST_CONNECT when CONFIG_GAGENT is enabled,because
-	reconnect to previous AP is not suitable when re-configuration. 
+	reconnect to previous AP is not suitable when re-configuration.
 */
 #if CONFIG_GAGENT
 #define CONFIG_EXAMPLE_WLAN_FAST_CONNECT 0
@@ -198,7 +198,7 @@
 
 /* For cJSON example */
 #define CONFIG_EXAMPLE_CJSON         0
-   
+
 /* For HTTP CLIENT example */
 #define CONFIG_EXAMPLE_HTTP_CLIENT  0
 
@@ -217,7 +217,7 @@
 /* for CoAP example*/
 #define CONFIG_EXAMPLE_COAP		0
 
-/* for lib CoAP example*/ 
+/* for lib CoAP example*/
 #define CONFIG_EXAMPLE_COAP_SERVER        0
 #define CONFIG_EXAMPLE_COAP_CLIENT        0
 
@@ -330,7 +330,7 @@
 #define CONFIG_EXAMPLE_AUDIO_AMR_FLASH 0
 
 #define CONFIG_EXAMPLE_AUDIO_AC3		0
-#if CONFIG_EXAMPLE_AUDIO_AC3	
+#if CONFIG_EXAMPLE_AUDIO_AC3
 #define FATFS_DISK_SD	1
 #endif
 
@@ -437,7 +437,7 @@
 #undef CONFIG_INCLUDE_SIMPLE_CONFIG
 #define CONFIG_INCLUDE_SIMPLE_CONFIG		0
 #define CONFIG_ENABLE_WPS	0
-#endif  
+#endif
 
 /* For Mjpeg capture example*/
 #define CONFIG_EXAMPLE_MJPEG_CAPTURE		0
@@ -517,7 +517,7 @@
 #endif
 
 /* For uart adapter example */
-/* Please also configure LWIP_UART_ADAPTER to 1 
+/* Please also configure LWIP_UART_ADAPTER to 1
 in lwip_opt.h for support uart adapter*/
 #define CONFIG_EXAMPLE_UART_ADAPTER	0
 #if CONFIG_EXAMPLE_UART_ADAPTER
@@ -535,7 +535,7 @@ in lwip_opt.h for support uart adapter*/
 /* For wifi scenarios example (Wi-Fi, WPS enrollee, P2P GO) */
 // also need to enable WPS and P2P
 #define CONFIG_EXAMPLE_WLAN_SCENARIO	0
-	 
+
 /* For broadcast example */
 #define CONFIG_EXAMPLE_BCAST			0
 
@@ -557,7 +557,7 @@ in lwip_opt.h for support uart adapter*/
 #if CONFIG_ENABLE_WPS
 #define WPS_CONNECT_RETRY_COUNT		4
 #define WPS_CONNECT_RETRY_INTERVAL	5000 // in ms
-#endif 
+#endif
 
 #define AUTO_RECONNECT_COUNT	8
 #define AUTO_RECONNECT_INTERVAL	5 // in sec
