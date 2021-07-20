@@ -17,6 +17,17 @@
          ---> connectedhomeip (branch base0705_gn https://github.com/hank820/connectedhomeip/tree/base0705_gn )
 	   
 	   mbedtls config path : connectedhomeip/config/ambd/mbedtls/mbedtls_config.h
+	   
+	3.1 <b>wifi_eap_config.c:</b> Fix compile error by change MBEDTLS_SSL_BUFFER_LEN to MBEDTLS_SSL_PAYLOAD_OVERHEAD
+	
+	3.2 <b>Makefile.include.gen:</b> Change include path and config file of mbedtls
+	
+	3.3 <b>rlx8721d_rom_symbol_acut.ld:</b> Delete mbedlt related in ld file. Link without mbedtls symbol in ROM because mbedtls upgrade
+	
+	3.4 <b>make/mbedtls/Makefile:</b> Use new Makefile of new mbedtls
+	
+	3.5 <b>make/mbedtls/mbedtls-chip/Makefile:</b> New Makefile for new mbedtls
+	
 
 4. Update toolchain from 6.4.1 to 9.3.0 [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/73758f273ce095e7fc1d182546302231b6f3e806)
 
