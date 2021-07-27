@@ -188,11 +188,11 @@ $(STATIC_LIB):$(OBJS)
 #              CLEAN GENERATED FILES                                          #
 #*****************************************************************************#
 clean:
-	rm -f $(ROOTDIR)/make/chip_main/*.o
-	rm -f $(ROOTDIR)/make/chip_main/*.i
-	rm -f $(ROOTDIR)/make/chip_main/*.s
-	rm -f $(ROOTDIR)/make/chip_main/*.d
-	rm -f $(ROOTDIR)/make/chip_main/*.ii
-	rm -f $(ROOTDIR)/make/chip_main/*.su
+	rm -f $(ROOTDIR)/make/chip_main/lighting_app/*.o
+	rm -f $(ROOTDIR)/make/chip_main/lighting_app/*.i
+	rm -f $(ROOTDIR)/make/chip_main/lighting_app/*.s
+	rm -f $(ROOTDIR)/make/chip_main/lighting_app/*.d
+	rm -f $(ROOTDIR)/make/chip_main/lighting_app/*.ii
+	rm -f $(ROOTDIR)/make/chip_main/lighting_app/*.su
 
 -include $(DEPS)
