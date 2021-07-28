@@ -4,7 +4,7 @@
 
     README
 
-    https://github.com/hank820/connectedhomeip/tree/base0617_gn/examples/all-clusters-app/ambd
+    https://github.com/hank820/connectedhomeip/tree/base0728_gn/examples/all-clusters-app/ambd
 
 
 ## Get amebaD SDK & Matter SDK
@@ -94,7 +94,9 @@ Please refer [Application Note](https://github.com/hank820/ambd_sdk_with_chip_no
 ## Test with [chip-tool](https://github.com/hank820/connectedhomeip/tree/master/examples/chip-tool)
 Use standalone chip-tool app(linux) to communicate with the device.
 
-`./chip-tool pairing bypass 192.168.xxx.xxx 11097  (AmebaD IP)`
+`Disable "config_pair_with_random_id = false" in examples/chip-tool/BUILD.gn if test bypass mode`
+
+`./chip-tool pairing bypass xxx.xxx.xxx.xxx 5540  (Ameba IP)`
 
 <b>onoff cluster</b>
 

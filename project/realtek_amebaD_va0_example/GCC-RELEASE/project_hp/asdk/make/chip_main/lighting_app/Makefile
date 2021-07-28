@@ -139,6 +139,9 @@ CPPSRC += $(CHIPDIR)/src/app/clusters/network-commissioning/network-commissionin
 CPPSRC += $(CHIPDIR)/src/app/clusters/color-control-server/color-control-server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/ethernet_network_diagnostics_server/ethernet_network_diagnostics_server.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/software_diagnostics_server/software_diagnostics_server.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/thread_network_diagnostics_server/thread_network_diagnostics_server.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/wifi_network_diagnostics_server/wifi_network_diagnostics_server.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
