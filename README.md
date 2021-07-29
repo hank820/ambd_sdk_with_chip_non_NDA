@@ -2,54 +2,11 @@
 
 ## How to support Matter on AmebaD SDK
 
-1. Add lwip_v2.1.2 [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/048c392ed620c70973e75c6e5a537c9710e98b0b)
-
-2. Revise Makefile to use lwip_2.1.2 [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/e20fd7d2ab1ded2400f9c1abe65266dd18ff01d2) 
-
-3. Use mbedtls in connectedhomeip/third_party/mbedtls/repo [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/337b61475f3ab7ff59ea8d0981c618d36701dd2e)
-
-       Folder structure
-	
-       ${HOME}/AmebaD_with_CHIP
-	  
-         ---> ambd_sdk_with_chip_non_NDA (branch 6.2c)
-	  
-         ---> connectedhomeip (branch base0705_gn https://github.com/hank820/connectedhomeip/tree/base0705_gn )
-	   
-	   mbedtls config path : connectedhomeip/config/ambd/mbedtls/mbedtls_config.h
-	   
-	3.1 <b>wifi_eap_config.c:</b> Fix compile error by change MBEDTLS_SSL_BUFFER_LEN to MBEDTLS_SSL_PAYLOAD_OVERHEAD
-	
-	3.2 <b>Makefile.include.gen:</b> Change include path and config file of mbedtls
-	
-	3.3 <b>rlx8721d_rom_symbol_acut.ld:</b> Delete mbedlt related in ld file. Link without mbedtls symbol in ROM because mbedtls upgrade
-	
-	3.4 <b>make/mbedtls/Makefile:</b> Use new Makefile of new mbedtls
-	
-	3.5 <b>make/mbedtls/mbedtls-chip/Makefile:</b> New Makefile for new mbedtls
-	
-
-4. Update toolchain from 6.4.1 to 9.3.0 [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/73758f273ce095e7fc1d182546302231b6f3e806)
-
-       Upgrade gcc to fix C++14 build error. 
-
-5. Add Makeflie for libCHIP.a/lib_main.a and fix compile error [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/b9504185f4727332ff7d88277958b803429d3d57)
-
-       5.1 Enable LWIP_IPV6
-	   5.2 Enable STD_PRINTF
-	   5.3 Specific setting in component/common/api/platform/platform_stdlib_rtl8721d.h to compatible Matter SDK
-	   5.4 [libCHIP.a] Add .../GCC-RELEASE/project_hp/asdk/make/chip/lighting_app/Makefile
-	   5.5 [lib_main.a] Add .../GCC-RELEASE/project_hp/asdk/make/chip_main/lighting_app/Makefile
-	   
-6. Add Matter task. Trigger by ATS$ [[ref commit]](https://github.com/hank820/ambd_sdk_with_chip_non_NDA/commit/ee1bc3d68325db329d09ee52c3b6392957cb764d)
-
-       6.1 Add ATS$ to start Matter task
-	   6.2 Fix "Failed to initialize Udp transport: LwIP Error" by define LWIP_TCPIP_CORE_LOCKING, LWIP_COMPAT_MUTEX_ALLOWE... in lwipopts.h
-	   6.3 Fix "chip[CSL] PacketBuffer: allocation too large" by Enlarge PBUF_POOL_BUFSIZE
+https://github.com/hank820/ambd_sdk_with_chip_non_NDA/blob/6.2c/PORTING.md
 
 ## CHIP Ameba-D lighting-app Example
 
-    README
+README
 
     https://github.com/hank820/connectedhomeip/tree/base0705_gn/examples/lighting-app/ambd
 
