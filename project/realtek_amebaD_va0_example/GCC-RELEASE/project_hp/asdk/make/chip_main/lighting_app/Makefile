@@ -100,6 +100,8 @@ CPPSRC += $(CHIPDIR)/src/app/ReadHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/WriteClient.cpp
 CPPSRC += $(CHIPDIR)/src/app/WriteHandler.cpp
 
+CPPSRC += $(CHIPDIR)/src/app/common/gen/attributes/Accessors.cpp
+
 CPPSRC += $(CHIPDIR)/src/app/server/Server.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/RendezvousServer.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/Mdns.cpp
@@ -142,6 +144,7 @@ CPPSRC += $(CHIPDIR)/src/app/clusters/ethernet_network_diagnostics_server/ethern
 CPPSRC += $(CHIPDIR)/src/app/clusters/software_diagnostics_server/software_diagnostics_server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/thread_network_diagnostics_server/thread_network_diagnostics_server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/wifi_network_diagnostics_server/wifi_network_diagnostics_server.cpp
+CPPSRC += $(CHIPDIR)/src/app/clusters/administrator-commissioning-server/administrator-commissioning-server.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
