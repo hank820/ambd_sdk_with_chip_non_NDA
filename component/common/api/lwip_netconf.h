@@ -46,7 +46,7 @@ typedef enum
 
 /* Extern functions ------------------------------------------------------------*/
 void wifi_rx_beacon_hdl( char* buf, int buf_len, int flags, void* userdata);
-void rtw_wakelock_timeout(u32 timeoutms);
+void rtw_wakelock_timeout(uint32_t timeoutms);
 /** Release a DHCP lease. */
 err_t dhcp_release_unicast(struct netif *netif);
 
