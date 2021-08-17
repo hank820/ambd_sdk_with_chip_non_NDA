@@ -55,6 +55,8 @@ extern "C" {
 typedef u32_t in_addr_t;
 #endif
 
+typedef __uint32_t in_addr_t;
+
 struct in_addr {
   in_addr_t s_addr;
 };
