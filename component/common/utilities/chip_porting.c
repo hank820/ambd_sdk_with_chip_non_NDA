@@ -117,194 +117,296 @@ int _vTaskDelay( const TickType_t xTicksToDelay )
 	return 0;
 }
 
-#define kPreferencesBeginAddr   0x1F0000    /*!< Preferences begin address of flash, ex: 0x100000 = 1M */
-#define kPreferencesKeySize     32          /*!< max size of the variable name */
-#define kPreferencesValueSize   64          /*!< max size of the variable value */
-#define kPreferencesMagic       0x81958711
-#define kPreferencesDomainNum   2           /*!< max number of module */
-
-#define c_read32(POINTER) *((uint32_t*)(POINTER))
-
-enum {
-    kPrefsTypeBoolean = 1,
-    kPrefsTypeInteger = 2,
-    kPrefsTypeString = 3,
-    kPrefsTypeBuffer = 4
-};
-
-int32_t initPref(char * ns)
+#define DCT_BEGIN_ADDR          0x1E0000    /*!< DCT begin address of flash, ex: 0x100000 = 1M */
+#define MODULE_NUM              8           /*!< max number of module */
+#define VARIABLE_NAME_SIZE      32          /*!< max size of the variable name */
+#define VARIABLE_VALUE_SIZE     1750 + 4    /*!< max size of the variable value
+                                            /*!< max value number in moudle = 4024 / (32 + 1750+4) = 2 */
+int32_t initPref(void)
 {
-	int32_t ret;
-    ret = dct_init(kPreferencesBeginAddr, kPreferencesDomainNum, kPreferencesKeySize, kPreferencesValueSize, 1, 0);
+    int32_t ret;
+    ret = dct_init(DCT_BEGIN_ADDR, MODULE_NUM, VARIABLE_NAME_SIZE, VARIABLE_VALUE_SIZE, 1, 0);
+    if (ret != 0)
+        printf("dct_init fail\n");
+    else
+        printf("dct_init success\n");
+
+    return ret;
+}
+
+int32_t deinitPref(void)
+{
+    int32_t ret;
+    ret = dct_format(DCT_BEGIN_ADDR, MODULE_NUM, VARIABLE_NAME_SIZE, VARIABLE_VALUE_SIZE, 1, 0);
+    if (ret != 0)
+        printf("dct_format fail\n");
+    else
+        printf("dct_format success\n");
+
+    return ret;
+}
+
+int32_t registerPref(char * ns)
+{
+    int32_t ret;
     ret = dct_register_module(ns);
     if (ret != 0)
-    {
-        printf("dct_register_module failed\n");
-    }
+        printf("dct_register_module %s fail\n",ns);
+    else
+        printf("dct_register_module %s success\n",ns);
+
     return ret;
 }
 
 int32_t clearPref(char * ns)
 {
-	int32_t ret;
+    int32_t ret;
     ret = dct_unregister_module(ns);
     if (ret != 0)
-    {
-        printf("dct_unregister_module failed\n");
-    }
+        printf("dct_unregister_module %s fail\n",ns);
+    else
+        printf("dct_unregister_module %s success\n",ns);
+
     return ret;
 }
-int32_t setPref(char *domain, char *key, uint8_t type, uint8_t *value, size_t byteCount)
+
+int32_t deleteKey(char *domain, char *key)
+{
+    dct_handle_t handle;
+    int32_t ret = -1;
+
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto bail;
+    }
+
+    ret = dct_delete_variable(&handle, key);
+    if(ret == DCT_ERR_NOT_FIND || ret == DCT_SUCCESS)
+        ret = DCT_SUCCESS;
+    else
+        printf("%s : dct_delete_variable(%s) failed\n",__FUNCTION__,key);
+
+bail:
+    dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
+
+    return (DCT_SUCCESS == ret ? 1 : 0);
+}
+
+bool checkExist(char *domain, char *key)
+{
+    dct_handle_t handle;
+    int32_t ret = -1;
+    uint16_t DataLen = 0;
+    char Data[VARIABLE_VALUE_SIZE];
+
+    ret = dct_open_module(&handle, domain);
+    if (ret != DCT_SUCCESS){
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        registerPref(domain);
+        dct_open_module(&handle, domain);
+        goto bail;
+    }
+
+    memset(Data, 0, sizeof(Data));
+    DataLen = sizeof(Data);
+    ret = dct_get_variable_new(&handle,key ,Data,&DataLen);
+    if(ret == DCT_ERR_NOT_FIND)
+        printf("%s not found.\n", key);
+
+bail:
+    dct_close_module(&handle);
+
+    return (DCT_ERR_NOT_FIND != ret ? 1 : 0);
+
+}
+
+int32_t setPref_new(char *domain, char *key, uint8_t *value, size_t byteCount)
 {
     dct_handle_t handle;
     int32_t ret = -1;
     uint32_t prefSize;
-    char buffer[kPreferencesValueSize];
-    char *pref = buffer;
 
-    if (byteCount > 63)
+    if (byteCount > VARIABLE_VALUE_SIZE-4)
         return 0;
 
-	ret = initPref(domain);
-	if (DCT_SUCCESS != ret)
-		goto exit;
+    printf("%s : domain=%s, key=%s, byteCount=%d\n",__FUNCTION__,domain, key, byteCount);
 
-    ret = dct_open_module(&handle, domain);
-	if (DCT_SUCCESS != ret)
-		goto exit;
-
-    // build pref entry
-    prefSize = sizeof(kPreferencesMagic) + 1 + byteCount + ((kPrefsTypeBuffer == type) ? 2 : 0);
-    if (prefSize > sizeof(buffer)) {
-        ret = DCT_ERR_INVALID;
+    ret = registerPref(domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : registerPref(%s) failed\n",__FUNCTION__,domain);
         goto exit;
     }
 
-    memset(buffer, 0, prefSize);
-    pref[0] = (uint8_t)(kPreferencesMagic & 0xFF);
-    pref[1] = (uint8_t)((kPreferencesMagic >> 8) & 0xFF);
-    pref[2] = (uint8_t)((kPreferencesMagic >> 16) & 0xFF);
-    pref[3] = (uint8_t)((kPreferencesMagic >> 24) & 0xFF);
-    pref += sizeof(kPreferencesMagic);
-    *pref++ = type;
-    if (kPrefsTypeBuffer == type) {
-        pref[0] = (uint8_t)byteCount;
-        pref[1] = (uint8_t)(byteCount >> 8);
-        pref += 2;
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto exit;
     }
 
-    memcpy(pref, value, byteCount);
-
-    ret = dct_set_variable_new(&handle,key,buffer,(uint16_t)prefSize);
-	if (DCT_SUCCESS != ret)
-		goto exit;
+    ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
 
 exit:
     dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
+
     return (DCT_SUCCESS == ret ? 1 : 0);
-
 }
 
-int32_t getPref_u32(char *domain, char *key, uint8_t type, uint32_t *val)
+int32_t getPref_bool_new(char *domain, char *key, uint32_t *val)
 {
-	dct_handle_t handle;
-	int32_t ret = -1;
-	uint16_t DataLen = 0;
-	char *pref = NULL;
-	char Data[64];
+    dct_handle_t handle;
+    int32_t ret = -1;
+    uint16_t len = 0;
 
-	ret = initPref(domain);
-	if (DCT_SUCCESS != ret)
-		goto bail;
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto exit;
+    }
 
-	ret = dct_open_module(&handle, domain);
-	if (ret != DCT_SUCCESS){
-		printf("dct_open_module failed\n"); // most likely that domain doesn't exist yet
-		return ret;
-	}
+    len = sizeof(uint32_t);
+    ret = dct_get_variable_new(&handle, key, (char *)val, &len);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
 
-	memset(Data, 0, sizeof(Data));
-	DataLen = sizeof(Data);
-	ret = dct_get_variable_new(&handle,key,Data,&DataLen);
-	if (ret != DCT_SUCCESS){
-		ret = DCT_SUCCESS;
-		return ret;
-	}
+exit:
+    dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
 
-	pref = Data;
-	if (kPreferencesMagic != c_read32(pref)) {
-		ret = -1;
-		goto bail;
-	}
-
-	pref += sizeof(kPreferencesMagic);
-
-	switch (*pref++) {
-		case kPrefsTypeBoolean:
-			if ( *pref == '1' )
-				*val = 1;
-			else
-			    *val = 0;
-			break;
-		case kPrefsTypeInteger:
-			//xsmcSetInteger(xsResult, c_read32(pref));
-			break;
-	}
-
-bail:
-	dct_close_module(&handle);
-	if (DCT_SUCCESS != ret){
-		printf("can't getPref_u32\n");
-		return ret;
-	}
+    return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
-int32_t getPref_str(char *domain, char *key, uint8_t type, char * buf, size_t *outLen)
+int32_t getPref_u32_new(char *domain, char *key, uint32_t *val)
 {
-	dct_handle_t handle;
-	int32_t ret = -1;
-	uint16_t DataLen = 0;
-	char *pref = NULL;
-	char Data[64];
+    dct_handle_t handle;
+    int32_t ret = -1;
+    uint16_t len = 0;
 
-	ret = dct_open_module(&handle, domain);
-	if (ret != DCT_SUCCESS){
-		printf("dct_open_module failed\n"); // most likely that domain doesn't exist yet
-		return ret;
-	}
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto exit;
+    }
 
-	memset(Data, 0, sizeof(Data));
-	DataLen = sizeof(Data);
-	ret = dct_get_variable_new(&handle,key,Data,&DataLen);
-	if (ret != DCT_SUCCESS){
-		ret = DCT_SUCCESS;
-		return ret;
-	}
+    len = sizeof(uint32_t);
+    ret = dct_get_variable_new(&handle, key, (char *)val, &len);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
 
-	pref = Data;
-	if (kPreferencesMagic != c_read32(pref)) {
-		ret = -1;
-		goto bail;
-	}
+exit:
+    dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
 
-	pref += sizeof(kPreferencesMagic);
+    return (DCT_SUCCESS == ret ? 1 : 0);
+}
 
-	switch (*pref++) {
-		case kPrefsTypeBoolean:
-		case kPrefsTypeInteger:
-			break;
-		case kPrefsTypeString:
-			*outLen = strlen(pref);
-			memcpy(buf,pref,strlen(pref)+1);
-			break;
-	}
+int32_t getPref_u64_new(char *domain, char *key, uint64_t *val)
+{
+    dct_handle_t handle;
+    int32_t ret = -1;
+    uint16_t len = 0;
 
-bail:
-	dct_close_module(&handle);
-	if (DCT_SUCCESS != ret){
-		printf("can't getPref_str\n");
-		return ret;
-	}
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto exit;
+    }
+
+    len = sizeof(uint64_t);
+    ret = dct_get_variable_new(&handle, key, (char *)val, &len);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
+
+exit:
+    dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
+
+    return (DCT_SUCCESS == ret ? 1 : 0);
+}
+
+
+int32_t getPref_str_new(char *domain, char *key, char * buf, size_t bufSize, size_t *outLen)
+{
+    dct_handle_t handle;
+    int32_t ret = -1;
+    uint16_t _bufSize = bufSize;
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto exit;
+    }
+
+    ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
+    *outLen = bufSize;
+
+exit:
+    dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
+
+    return (DCT_SUCCESS == ret ? 1 : 0);
+}
+
+int32_t getPref_bin_new(char *domain, char *key, uint8_t * buf, size_t bufSize, size_t *outLen)
+{
+    dct_handle_t handle;
+    int32_t ret = -1;
+    uint16_t _bufSize = bufSize;
+    ret = dct_open_module(&handle, domain);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        goto exit;
+    }
+
+    ret = dct_get_variable_new(&handle, key, (char *)buf, &_bufSize);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
+
+    *outLen = bufSize;
+
+exit:
+    dct_close_module(&handle);
+    if (DCT_SUCCESS != ret)
+        printf("%s failed\n",__FUNCTION__);
+
+    return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
 #ifdef __cplusplus
