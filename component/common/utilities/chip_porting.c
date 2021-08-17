@@ -120,7 +120,7 @@ int _vTaskDelay( const TickType_t xTicksToDelay )
 #define DCT_BEGIN_ADDR          0x1E0000    /*!< DCT begin address of flash, ex: 0x100000 = 1M */
 #define MODULE_NUM              8           /*!< max number of module */
 #define VARIABLE_NAME_SIZE      32          /*!< max size of the variable name */
-#define VARIABLE_VALUE_SIZE     1750 + 4    /*!< max size of the variable value
+#define VARIABLE_VALUE_SIZE     1860 + 4    /*!< max size of the variable value
                                             /*!< max value number in moudle = 4024 / (32 + 1750+4) = 2 */
 int32_t initPref(void)
 {
@@ -229,11 +229,96 @@ int32_t setPref_new(char *domain, char *key, uint8_t *value, size_t byteCount)
     dct_handle_t handle;
     int32_t ret = -1;
     uint32_t prefSize;
-
+    char _domain[16] = "CHIP_KVS2";
+    char _domain2[16] = "chip-config2";
     if (byteCount > VARIABLE_VALUE_SIZE-4)
         return 0;
 
     printf("%s : domain=%s, key=%s, byteCount=%d\n",__FUNCTION__,domain, key, byteCount);
+
+    if(strcmp(key,"CHIPAdmin0")==0)
+    {
+        printf("\n\nkey = CHIPAdmin0, byteCount=%d\n\n",byteCount);
+        ret = registerPref(_domain);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : registerPref(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_open_module(&handle, _domain);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+            goto exit;
+        }
+
+        dct_close_module(&handle);
+        return (DCT_SUCCESS == ret ? 1 : 0);
+    }
+
+    if(strcmp(key,"Fabric0")==0)
+    {
+        printf("\n\nkey = Fabric0, byteCount=%d\n\n",byteCount);
+        ret = registerPref(_domain);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : registerPref(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_open_module(&handle, _domain);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+            goto exit;
+        }
+
+        dct_close_module(&handle);
+        return (DCT_SUCCESS == ret ? 1 : 0);
+    }
+
+    if(strcmp(key,"breadcrumb")==0)
+    {
+        printf("\n\nkey = breadcrumb, byteCount=%d\n\n",byteCount);
+        ret = registerPref(_domain2);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : registerPref(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_open_module(&handle, _domain2);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain2);
+            goto exit;
+        }
+
+        ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+            goto exit;
+        }
+
+        dct_close_module(&handle);
+        return (DCT_SUCCESS == ret ? 1 : 0);
+    }
 
     ret = registerPref(domain);
     if (DCT_SUCCESS != ret)
@@ -357,6 +442,76 @@ int32_t getPref_str_new(char *domain, char *key, char * buf, size_t bufSize, siz
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t _bufSize = bufSize;
+    char _domain[16] = "CHIP_KVS2";
+    char _domain2[16] = "chip-config2";
+
+    if(strcmp(key,"CHIPAdmin0")==0)
+    {
+        printf("\n\nkey = CHIPAdmin0, bufSize=%d\n\n",bufSize);
+        ret = dct_open_module(&handle, _domain);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+            goto exit;
+        }
+        *outLen = bufSize;
+
+        dct_close_module(&handle);
+        return (DCT_SUCCESS == ret ? 1 : 0);
+    }
+
+    if(strcmp(key,"Fabric0")==0)
+    {
+        printf("\n\nkey = Fabric0, bufSize=%d\n\n",bufSize);
+        ret = dct_open_module(&handle, _domain);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
+            goto exit;
+        }
+
+        ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+            goto exit;
+        }
+        *outLen = bufSize;
+
+        dct_close_module(&handle);
+        return (DCT_SUCCESS == ret ? 1 : 0);
+    }
+
+    if(strcmp(key,"breadcrumb")==0)
+    {
+        printf("\n\nkey = breadcrumb, bufSize=%d\n\n",bufSize);
+
+        ret = dct_open_module(&handle, _domain2);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain2);
+            goto exit;
+        }
+
+        ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
+        if (DCT_SUCCESS != ret)
+        {
+            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
+            goto exit;
+        }
+        *outLen = bufSize;
+
+        dct_close_module(&handle);
+        return (DCT_SUCCESS == ret ? 1 : 0);
+    }
+
     ret = dct_open_module(&handle, domain);
     if (DCT_SUCCESS != ret)
     {
