@@ -922,6 +922,7 @@ void TestBase64(const char * test)
 }
 
 extern void ChipTest(void);
+extern int32_t deinitPref(void);
 
 void fATchipapp(void *arg)
 {
@@ -936,6 +937,7 @@ void fATSt(void *arg)
 	/* To avoid gcc warnings */
 	( void ) arg;
 
+	deinitPref();
     // src/lib/core/tests
     #if 0
     _Z20TestReferenceCountedv();
