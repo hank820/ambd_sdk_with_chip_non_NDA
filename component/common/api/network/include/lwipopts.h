@@ -394,7 +394,7 @@ Certain platform allows computing and verifying the IP, UDP, TCP and ICMP checks
 /* Extra options for lwip_v2.0.2 which should not affect lwip_v1.4.1 */
 #define LWIP_TCPIP_CORE_LOCKING         1
 #define LWIP_COMPAT_MUTEX_ALLOWED		1
-#define LWIP_IPV6_ND                    0
+#define LWIP_IPV6_ND                    1
 #define LWIP_IPV6_SCOPES                0
 #define LWIP_PBUF_FROM_CUSTOM_POOLS     0
 
