@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "platform_opts.h"
 #include "platform/platform_stdlib.h"
 #include "errno.h"
 #include <sntp/sntp.h>
@@ -117,15 +118,23 @@ int _vTaskDelay( const TickType_t xTicksToDelay )
 	return 0;
 }
 
-#define DCT_BEGIN_ADDR          0x1E0000    /*!< DCT begin address of flash, ex: 0x100000 = 1M */
-#define MODULE_NUM              8           /*!< max number of module */
-#define VARIABLE_NAME_SIZE      32          /*!< max size of the variable name */
-#define VARIABLE_VALUE_SIZE     1860 + 4    /*!< max size of the variable value
-                                            /*!< max value number in moudle = 4024 / (32 + 1750+4) = 2 */
+/*
+   module size is 4k, we set max module number as 12;
+   if backup enabled, the total module number is 12 + 1*12 = 24, the size is 96k;
+   if wear leveling enabled, the total module number is 12 + 2*12 + 3*12 = 36, the size is 288k"
+*/
+#define DCT_BEGIN_ADDR_MATTER   0x1E0000          /*!< DCT begin address of flash, ex: 0x100000 = 1M */
+#define MODULE_NUM              12                /*!< max number of module */
+#define VARIABLE_NAME_SIZE      32                /*!< max size of the variable name */
+#define VARIABLE_VALUE_SIZE     1860 + 4          /*!< max size of the variable value
+                                                  /*!< max value number in moudle = 4024 / (32 + 1860+4) = 2 */
+#define ENABLE_BACKUP           1
+#define ENABLE_WEAR_LEVELING    0
+
 int32_t initPref(void)
 {
     int32_t ret;
-    ret = dct_init(DCT_BEGIN_ADDR, MODULE_NUM, VARIABLE_NAME_SIZE, VARIABLE_VALUE_SIZE, 1, 0);
+    ret = dct_init(DCT_BEGIN_ADDR_MATTER, MODULE_NUM, VARIABLE_NAME_SIZE, VARIABLE_VALUE_SIZE, ENABLE_BACKUP, ENABLE_WEAR_LEVELING);
     if (ret != 0)
         printf("dct_init fail\n");
     else
@@ -137,7 +146,7 @@ int32_t initPref(void)
 int32_t deinitPref(void)
 {
     int32_t ret;
-    ret = dct_format(DCT_BEGIN_ADDR, MODULE_NUM, VARIABLE_NAME_SIZE, VARIABLE_VALUE_SIZE, 1, 0);
+    ret = dct_format(DCT_BEGIN_ADDR_MATTER, MODULE_NUM, VARIABLE_NAME_SIZE, VARIABLE_VALUE_SIZE, ENABLE_BACKUP, ENABLE_WEAR_LEVELING);
     if (ret != 0)
         printf("dct_format fail\n");
     else
@@ -175,11 +184,11 @@ int32_t deleteKey(char *domain, char *key)
     dct_handle_t handle;
     int32_t ret = -1;
 
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
-        goto bail;
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
+        goto exit;
     }
 
     ret = dct_delete_variable(&handle, key);
@@ -188,11 +197,9 @@ int32_t deleteKey(char *domain, char *key)
     else
         printf("%s : dct_delete_variable(%s) failed\n",__FUNCTION__,key);
 
-bail:
     dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
 
+exit:
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
@@ -203,12 +210,12 @@ bool checkExist(char *domain, char *key)
     uint16_t DataLen = 0;
     char Data[VARIABLE_VALUE_SIZE];
 
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (ret != DCT_SUCCESS){
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
-        registerPref(domain);
-        dct_open_module(&handle, domain);
-        goto bail;
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
+        registerPref(key);
+        dct_open_module(&handle, key);
+        goto exit;
     }
 
     memset(Data, 0, sizeof(Data));
@@ -217,11 +224,10 @@ bool checkExist(char *domain, char *key)
     if(ret == DCT_ERR_NOT_FIND)
         printf("%s not found.\n", key);
 
-bail:
+exit:
     dct_close_module(&handle);
 
     return (DCT_ERR_NOT_FIND != ret ? 1 : 0);
-
 }
 
 int32_t setPref_new(char *domain, char *key, uint8_t *value, size_t byteCount)
@@ -229,123 +235,36 @@ int32_t setPref_new(char *domain, char *key, uint8_t *value, size_t byteCount)
     dct_handle_t handle;
     int32_t ret = -1;
     uint32_t prefSize;
-    char _domain[16] = "CHIP_KVS2";
-    char _domain2[16] = "chip-config2";
+
     if (byteCount > VARIABLE_VALUE_SIZE-4)
-        return 0;
-
-    printf("%s : domain=%s, key=%s, byteCount=%d\n",__FUNCTION__,domain, key, byteCount);
-
-    if(strcmp(key,"CHIPAdmin0")==0)
     {
-        printf("\n\nkey = CHIPAdmin0, byteCount=%d\n\n",byteCount);
-        ret = registerPref(_domain);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : registerPref(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_open_module(&handle, _domain);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-            goto exit;
-        }
-
-        dct_close_module(&handle);
-        return (DCT_SUCCESS == ret ? 1 : 0);
-    }
-
-    if(strcmp(key,"Fabric0")==0)
-    {
-        printf("\n\nkey = Fabric0, byteCount=%d\n\n",byteCount);
-        ret = registerPref(_domain);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : registerPref(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_open_module(&handle, _domain);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-            goto exit;
-        }
-
-        dct_close_module(&handle);
-        return (DCT_SUCCESS == ret ? 1 : 0);
-    }
-
-    if(strcmp(key,"breadcrumb")==0)
-    {
-        printf("\n\nkey = breadcrumb, byteCount=%d\n\n",byteCount);
-        ret = registerPref(_domain2);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : registerPref(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_open_module(&handle, _domain2);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain2);
-            goto exit;
-        }
-
-        ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-            goto exit;
-        }
-
-        dct_close_module(&handle);
-        return (DCT_SUCCESS == ret ? 1 : 0);
-    }
-
-    ret = registerPref(domain);
-    if (DCT_SUCCESS != ret)
-    {
-        printf("%s : registerPref(%s) failed\n",__FUNCTION__,domain);
+        printf("ERROR : byteCount(%d) large than VARIABLE_VALUE_SIZE(%d)\n", byteCount,VARIABLE_VALUE_SIZE-4);
         goto exit;
     }
 
-    ret = dct_open_module(&handle, domain);
+    printf("%s : domain=%s, key=%s, byteCount=%d\n",__FUNCTION__,domain, key, byteCount);
+
+    ret = registerPref(key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        printf("%s : registerPref(%s) failed\n",__FUNCTION__,key);
+        goto exit;
+    }
+
+    ret = dct_open_module(&handle, key);
+    if (DCT_SUCCESS != ret)
+    {
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
         goto exit;
     }
 
     ret = dct_set_variable_new(&handle, key, (char *)value, (uint16_t)byteCount);
     if (DCT_SUCCESS != ret)
-    {
         printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-        goto exit;
-    }
+
+    dct_close_module(&handle);
 
 exit:
-    dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
-
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
@@ -355,26 +274,21 @@ int32_t getPref_bool_new(char *domain, char *key, uint32_t *val)
     int32_t ret = -1;
     uint16_t len = 0;
 
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
-        goto exit;
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
+        return exit;
     }
 
     len = sizeof(uint32_t);
     ret = dct_get_variable_new(&handle, key, (char *)val, &len);
     if (DCT_SUCCESS != ret)
-    {
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
-        goto exit;
-    }
+
+    dct_close_module(&handle);
 
 exit:
-    dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
-
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
@@ -384,26 +298,21 @@ int32_t getPref_u32_new(char *domain, char *key, uint32_t *val)
     int32_t ret = -1;
     uint16_t len = 0;
 
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
         goto exit;
     }
 
     len = sizeof(uint32_t);
     ret = dct_get_variable_new(&handle, key, (char *)val, &len);
     if (DCT_SUCCESS != ret)
-    {
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
-        goto exit;
-    }
+
+    dct_close_module(&handle);
 
 exit:
-    dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
-
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
@@ -413,125 +322,46 @@ int32_t getPref_u64_new(char *domain, char *key, uint64_t *val)
     int32_t ret = -1;
     uint16_t len = 0;
 
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
         goto exit;
     }
 
     len = sizeof(uint64_t);
     ret = dct_get_variable_new(&handle, key, (char *)val, &len);
     if (DCT_SUCCESS != ret)
-    {
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
-        goto exit;
-    }
+
+    dct_close_module(&handle);
 
 exit:
-    dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
-
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
-
 
 int32_t getPref_str_new(char *domain, char *key, char * buf, size_t bufSize, size_t *outLen)
 {
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t _bufSize = bufSize;
-    char _domain[16] = "CHIP_KVS2";
-    char _domain2[16] = "chip-config2";
 
-    if(strcmp(key,"CHIPAdmin0")==0)
-    {
-        printf("\n\nkey = CHIPAdmin0, bufSize=%d\n\n",bufSize);
-        ret = dct_open_module(&handle, _domain);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-            goto exit;
-        }
-        *outLen = bufSize;
-
-        dct_close_module(&handle);
-        return (DCT_SUCCESS == ret ? 1 : 0);
-    }
-
-    if(strcmp(key,"Fabric0")==0)
-    {
-        printf("\n\nkey = Fabric0, bufSize=%d\n\n",bufSize);
-        ret = dct_open_module(&handle, _domain);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain);
-            goto exit;
-        }
-
-        ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-            goto exit;
-        }
-        *outLen = bufSize;
-
-        dct_close_module(&handle);
-        return (DCT_SUCCESS == ret ? 1 : 0);
-    }
-
-    if(strcmp(key,"breadcrumb")==0)
-    {
-        printf("\n\nkey = breadcrumb, bufSize=%d\n\n",bufSize);
-
-        ret = dct_open_module(&handle, _domain2);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,_domain2);
-            goto exit;
-        }
-
-        ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
-        if (DCT_SUCCESS != ret)
-        {
-            printf("%s : dct_set_variable(%s) failed\n",__FUNCTION__,key);
-            goto exit;
-        }
-        *outLen = bufSize;
-
-        dct_close_module(&handle);
-        return (DCT_SUCCESS == ret ? 1 : 0);
-    }
-
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
         goto exit;
     }
 
     ret = dct_get_variable_new(&handle, key, buf, &_bufSize);
     if (DCT_SUCCESS != ret)
-    {
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
-        goto exit;
-    }
+
     *outLen = bufSize;
 
-exit:
     dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
 
+exit:
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
@@ -540,27 +370,22 @@ int32_t getPref_bin_new(char *domain, char *key, uint8_t * buf, size_t bufSize, 
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t _bufSize = bufSize;
-    ret = dct_open_module(&handle, domain);
+    ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
-        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,domain);
+        printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
         goto exit;
     }
 
     ret = dct_get_variable_new(&handle, key, (char *)buf, &_bufSize);
     if (DCT_SUCCESS != ret)
-    {
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
-        goto exit;
-    }
 
     *outLen = bufSize;
 
-exit:
     dct_close_module(&handle);
-    if (DCT_SUCCESS != ret)
-        printf("%s failed\n",__FUNCTION__);
 
+exit:
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
