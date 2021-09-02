@@ -32,6 +32,8 @@ DIR += $(CHIPDIR)/src/app
 DIR += $(CHIPDIR)/src/app/server
 DIR += $(CHIPDIR)/examples/lighting-app/lighting-common
 DIR += $(CHIPDIR)/examples/lighting-app/ambd/main
+DIR += $(CHIPDIR)/zzz_generated/lighting-app/zap-generated
+DIR += $(CHIPDIR)/zzz_generated/app-common/app-common/zap-generated/attributes
 
 vpath %.cpp $(DIR) $(shell find $(DIR) -type d)
 vpath %.c $(DIR) $(shell find $(DIR) -type d)
@@ -68,6 +70,12 @@ CPPFLAGS += -Wno-unused-parameter
 #*****************************************************************************#
 
 #IFLAGS = -I$(DIR)./
+IFLAGS += -I$(CHIPDIR)/zzz_generated/lighting-app
+IFLAGS += -I$(CHIPDIR)/zzz_generated/lighting-app/zap-generated
+IFLAGS += -I$(CHIPDIR)/zzz_generated/app-common
+IFLAGS += -I$(CHIPDIR)/examples/lighting-app/lighting-common
+IFLAGS += -I$(CHIPDIR)/examples/lighting-app/ambd/main/include
+IFLAGS += -I$(CHIPDIR)/examples/lighting-app/ambd/build/chip/gen/include
 IFLAGS += -I$(CHIPDIR)/src/include/
 IFLAGS += -I$(CHIPDIR)/src/lib/
 IFLAGS += -I$(CHIPDIR)/src/
@@ -75,13 +83,9 @@ IFLAGS += -I$(CHIPDIR)/third_party/nlassert/repo/include/
 IFLAGS += -I$(CHIPDIR)/src/app/
 IFLAGS += -I$(CHIPDIR)/src/app/util/
 IFLAGS += -I$(CHIPDIR)/src/app/server/
+IFLAGS += -I$(CHIPDIR)/src/controller/data_model
 IFLAGS += -I$(CHIPDIR)/third_party/nlio/repo/include/
-IFLAGS += -I$(CHIPDIR)/examples/lighting-app/lighting-common
-IFLAGS += -I$(CHIPDIR)/examples/lighting-app/lighting-common/gen
-IFLAGS += -I$(CHIPDIR)/examples/lighting-app/ambd/main/include
-IFLAGS += -I$(CHIPDIR)/examples/lighting-app/ambd/build/chip/gen/include
 IFLAGS += -I$(CHIPDIR)/third_party/nlunit-test/repo/src
-
 
 #*****************************************************************************#
 #                               Source FILE LIST                              #
@@ -99,8 +103,6 @@ CPPSRC += $(CHIPDIR)/src/app/ReadClient.cpp
 CPPSRC += $(CHIPDIR)/src/app/ReadHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/WriteClient.cpp
 CPPSRC += $(CHIPDIR)/src/app/WriteHandler.cpp
-
-CPPSRC += $(CHIPDIR)/src/app/common/gen/attributes/Accessors.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/server/Server.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/RendezvousServer.cpp
@@ -150,9 +152,11 @@ CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/Engine.cpp
 
-CPPSRC += $(CHIPDIR)/examples/lighting-app/lighting-common/gen/attribute-size.cpp
-CPPSRC += $(CHIPDIR)/examples/lighting-app/lighting-common/gen/callback-stub.cpp
-CPPSRC += $(CHIPDIR)/examples/lighting-app/lighting-common/gen/IMClusterCommandHandler.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/app-common/app-common/zap-generated/attributes/Accessors.cpp
+
+CPPSRC += $(CHIPDIR)/zzz_generated/lighting-app/zap-generated/attribute-size.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/lighting-app/zap-generated/callback-stub.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/lighting-app/zap-generated/IMClusterCommandHandler.cpp
 
 CPPSRC += $(CHIPDIR)/examples/lighting-app/ambd/main/chipinterface.cpp
 CPPSRC += $(CHIPDIR)/examples/lighting-app/ambd/main/CHIPDeviceManager.cpp

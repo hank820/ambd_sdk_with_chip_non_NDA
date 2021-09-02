@@ -198,6 +198,7 @@ int32_t deleteKey(char *domain, char *key)
         printf("%s : dct_delete_variable(%s) failed\n",__FUNCTION__,key);
 
     dct_close_module(&handle);
+    dct_unregister_module(key);
 
 exit:
     return (DCT_SUCCESS == ret ? 1 : 0);
@@ -208,26 +209,28 @@ bool checkExist(char *domain, char *key)
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t DataLen = 0;
-    char Data[VARIABLE_VALUE_SIZE];
+    uint8_t *str = malloc(sizeof(uint8_t) * VARIABLE_VALUE_SIZE);
 
     ret = dct_open_module(&handle, key);
     if (ret != DCT_SUCCESS){
         printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
-        registerPref(key);
-        dct_open_module(&handle, key);
         goto exit;
     }
 
-    memset(Data, 0, sizeof(Data));
-    DataLen = sizeof(Data);
-    ret = dct_get_variable_new(&handle,key ,Data,&DataLen);
+    ret = dct_get_variable_new(&handle, key, str, &DataLen);
+
     if(ret == DCT_ERR_NOT_FIND)
         printf("%s not found.\n", key);
+    else if(ret == DCT_SUCCESS)
+        printf("%s found.\n", key);
+    else
+        goto exit;
 
-exit:
     dct_close_module(&handle);
 
-    return (DCT_ERR_NOT_FIND != ret ? 1 : 0);
+exit:
+    free(str);
+    return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
 int32_t setPref_new(char *domain, char *key, uint8_t *value, size_t byteCount)
@@ -357,7 +360,7 @@ int32_t getPref_str_new(char *domain, char *key, char * buf, size_t bufSize, siz
     if (DCT_SUCCESS != ret)
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
 
-    *outLen = bufSize;
+    outLen = bufSize;
 
     dct_close_module(&handle);
 
@@ -370,6 +373,7 @@ int32_t getPref_bin_new(char *domain, char *key, uint8_t * buf, size_t bufSize, 
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t _bufSize = bufSize;
+
     ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
@@ -381,7 +385,7 @@ int32_t getPref_bin_new(char *domain, char *key, uint8_t * buf, size_t bufSize, 
     if (DCT_SUCCESS != ret)
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
 
-    *outLen = bufSize;
+    outLen = bufSize;
 
     dct_close_module(&handle);
 
