@@ -215,6 +215,7 @@ IFLAGS               += -I$(BASEDIR)/component/common/network/ssl/ssl_ram_map/ro
 #MBEDTLS
 IFLAGS               += -I$(CHIPDIR)/third_party/mbedtls/repo/include
 IFLAGS               += -I$(CHIPDIR)/third_party/mbedtls/repo/include/mbedtls
+IFLAGS               += -I$(CHIPDIR)/third_party/mbedtls/repo/library
 #mbedtlc_config
 IFLAGS               += -I$(CHIPDIR)/config/ambd
 IFLAGS               += -I$(BASEDIR)/component/common/network/ssl/mbedtls_ram_map/rom
@@ -256,6 +257,7 @@ include  $(ABS_ROOTDIR)/Makefile.include.bt.gen
 endif 
 #BT config
 IFLAGS               += -I$(BASEDIR)/component/common/bluetooth/realtek/sdk/example/bt_config
+IFLAGS               += -I$(BASEDIR)/component/common/bluetooth/realtek/sdk/example/bt_matter_adapter
 
 
 #*****************************************************************************#

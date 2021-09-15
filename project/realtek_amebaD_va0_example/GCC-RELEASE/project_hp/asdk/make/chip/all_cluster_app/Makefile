@@ -24,7 +24,7 @@ GLOBAL_CFLAGS += -DDM_ODM_SUPPORT_TYPE=32
 GLOBAL_CFLAGS += -DCHIP_DEVICE_LAYER_TARGET=AMBD
 GLOBAL_CFLAGS += -DMBEDTLS_CONFIG_FILE=\"mbedtls/mbedtls_config.h\"
 
-#GLOBAL_CFLAGS += -DLWIP_IPV6_ND=0
+GLOBAL_CFLAGS += -DLWIP_IPV6_ND=1
 GLOBAL_CFLAGS += -DLWIP_IPV6_SCOPES=0
 GLOBAL_CFLAGS += -DLWIP_PBUF_FROM_CUSTOM_POOLS=0
 GLOBAL_CFLAGS += -DLWIP_IPV6_ROUTE_TABLE_SUPPORT=1
@@ -68,6 +68,8 @@ GLOBAL_CFLAGS += -I$(CHIPDIR)/src/app
 GLOBAL_CFLAGS += -I$(CHIPDIR)/third_party/nlassert/repo/include
 GLOBAL_CFLAGS += -I$(CHIPDIR)/third_party/nlio/repo/include
 GLOBAL_CFLAGS += -I$(CHIPDIR)/third_party/nlunit-test/repo/src
+
+GLOBAL_CFLAGS += -I$(BASEDIR)/component/common/bluetooth/realtek/sdk/example/bt_matter_adapter
 
 #*****************************************************************************#
 #                        RULES TO GENERATE TARGETS                            #
