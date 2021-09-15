@@ -3,7 +3,7 @@
   * This module is a confidential and proprietary property of RealTek and
   * possession or use of this module requires written permission of RealTek.
   *
-  * Copyright(c) 2016, Realtek Semiconductor Corporation. All rights reserved. 
+  * Copyright(c) 2016, Realtek Semiconductor Corporation. All rights reserved.
   *
 ******************************************************************************/
 
@@ -34,8 +34,8 @@
 #endif  // end of NET_IF_NUM
 
 /* Private typedef -----------------------------------------------------------*/
-typedef enum 
-{ 
+typedef enum
+{
 	DHCP_START=0,
 	DHCP_WAIT_ADDRESS,
 	DHCP_ADDRESS_ASSIGNED,
@@ -46,7 +46,7 @@ typedef enum
 
 /* Extern functions ------------------------------------------------------------*/
 void wifi_rx_beacon_hdl( char* buf, int buf_len, int flags, void* userdata);
-void rtw_wakelock_timeout(u32 timeoutms);
+void rtw_wakelock_timeout(uint32_t timeoutms);
 /** Release a DHCP lease. */
 err_t dhcp_release_unicast(struct netif *netif);
 

@@ -100,6 +100,8 @@ CPPSRC += $(CHIPDIR)/src/app/ReadHandler.cpp
 CPPSRC += $(CHIPDIR)/src/app/WriteClient.cpp
 CPPSRC += $(CHIPDIR)/src/app/WriteHandler.cpp
 
+CPPSRC += $(CHIPDIR)/src/app/common/gen/attributes/Accessors.cpp
+
 CPPSRC += $(CHIPDIR)/src/app/server/Server.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/RendezvousServer.cpp
 CPPSRC += $(CHIPDIR)/src/app/server/Mdns.cpp
@@ -125,6 +127,7 @@ CPPSRC += $(CHIPDIR)/src/app/util/message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/process-cluster-message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/process-global-message.cpp
 CPPSRC += $(CHIPDIR)/src/app/util/util.cpp
+#CPPSRC += $(CHIPDIR)/src/app/util/error-mapping.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/clusters/on-off-server/on-off-server.cpp                                         #Base0429
 CPPSRC += $(CHIPDIR)/src/app/clusters/level-control/level-control.cpp
@@ -155,6 +158,7 @@ CPPSRC += $(CHIPDIR)/src/app/clusters/test-cluster-server/test-cluster-server.cp
 CPPSRC += $(CHIPDIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp                     #Base0531
 CPPSRC += $(CHIPDIR)/src/app/clusters/pump-configuration-and-control-server/pump-configuration-and-control-server.cpp
 CPPSRC += $(CHIPDIR)/src/app/clusters/diagnostic-logs-server/diagnostic-logs-server.cpp
+#CPPSRC += $(CHIPDIR)/src/app/clusters/ethernet_network_diagnostics_server/ethernet_network_diagnostics_server.cpp
 
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
