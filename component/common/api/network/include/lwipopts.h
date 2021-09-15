@@ -410,8 +410,12 @@ Certain platform allows computing and verifying the IP, UDP, TCP and ICMP checks
 
 #define LWIP_IPV6                       1
 #if LWIP_IPV6
+#define LWIP_IPV6_MLD                   1
+#define LWIP_IPV6_AUTOCONFIG            1
+#define LWIP_ICMP6                      1
 #undef  MEMP_NUM_SYS_TIMEOUT
 #define MEMP_NUM_SYS_TIMEOUT            13
+#define LWIP_IPV6_DHCP6                 1
 #endif
 
 /*CONFIG_LIBCOAP_ON is defined to 1 in the lib_coap project options preprocessor defined symbol

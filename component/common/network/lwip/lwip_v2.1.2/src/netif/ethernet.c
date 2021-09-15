@@ -94,9 +94,10 @@ etharp_rarp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
       hdr = (struct etharp_hdr *)((u8_t*)ethhdr + SIZEOF_ETH_HDR);
 
       /* RFC 826 "Packet Reception": */
+      /* since only ipv4 uses rarp, hdr->protolen should be equals to the size of ipv4 address (hdr->protolen != sizeof(ip4_addr_t))*/
       if ((hdr->hwtype != PP_HTONS(HWTYPE_ETHERNET)) ||
           (hdr->hwlen != ETHARP_HWADDR_LEN) ||
-          (hdr->protolen != sizeof(ip_addr_t)) ||
+          (hdr->protolen != sizeof(ip4_addr_t)) ||
           (hdr->proto != PP_HTONS(ETHTYPE_IP)))  {
 
         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_WARNING,

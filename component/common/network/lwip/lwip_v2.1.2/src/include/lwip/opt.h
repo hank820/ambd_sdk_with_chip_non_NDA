@@ -1110,6 +1110,9 @@
  * DNS_SERVER_ADDRESS(ipaddr), where 'ipaddr' is an 'ip_addr_t*'
  */
 #if !defined DNS_MAX_SERVERS || defined __DOXYGEN__
+#if LWIP_IPV4 && LWIP_IPV6
+#define DNS_IPV4_IPV6_MAX_SERVERS       4
+#endif
 #define DNS_MAX_SERVERS                 2
 #endif
 
@@ -2712,7 +2715,11 @@
  * (up to the maximum limit defined here).
  */
 #if !defined LWIP_DHCP6_MAX_DNS_SERVERS || defined __DOXYGEN__
+#if LWIP_IPV4 && LWIP_IPV6
+#define LWIP_DHCP6_MAX_DNS_SERVERS      DNS_IPV4_IPV6_MAX_SERVERS
+#else
 #define LWIP_DHCP6_MAX_DNS_SERVERS      DNS_MAX_SERVERS
+#endif
 #endif
 /**
  * @}
@@ -2762,7 +2769,8 @@
  * - the 32-bit Initial Sequence Number to use for the new TCP connection.
  */
 #ifdef __DOXYGEN__
-#define LWIP_HOOK_TCP_ISN(local_ip, local_port, remote_ip, remote_port)
+#include <tcp_isn.h>
+#define LWIP_HOOK_TCP_ISN(local_ip, local_port, remote_ip, remote_port) lwip_hook_tcp_isn(local_ip, local_port, remote_ip, remote_port)
 #endif
 
 /**

@@ -998,6 +998,10 @@ netif_set_link_up(struct netif *netif)
     dhcp_network_changed(netif);
 #endif /* LWIP_DHCP */
 
+#if LWIP_IPV6_DHCP6 && LWIP_IPV6_DHCP6_STATEFUL
+    dhcp6_network_changed(netif);
+#endif /* LWIP_IPV6_DHCP6 */
+
 #if LWIP_AUTOIP
     autoip_network_changed(netif);
 #endif /* LWIP_AUTOIP */
@@ -1031,6 +1035,13 @@ netif_set_link_down(struct netif *netif)
 
   if (netif->flags & NETIF_FLAG_LINK_UP) {
     netif_clear_flags(netif, NETIF_FLAG_LINK_UP);
+/* Added by Realtek start */
+#if LWIP_ARP
+    if (netif->flags & NETIF_FLAG_ETHARP) {
+      etharp_cleanup_netif(netif);
+    }
+#endif /* LWIP_ARP */
+/* Added by Realtek end */
     NETIF_LINK_CALLBACK(netif);
 #if LWIP_NETIF_EXT_STATUS_CALLBACK
     {

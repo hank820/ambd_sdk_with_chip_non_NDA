@@ -361,6 +361,7 @@ struct netif {
 #if LWIP_IPV6_SEND_ROUTER_SOLICIT
   /** Number of Router Solicitation messages that remain to be sent. */
   u8_t rs_count;
+  u8_t rs_timeout;
 #endif /* LWIP_IPV6_SEND_ROUTER_SOLICIT */
 #if MIB2_STATS
   /** link type (from "snmp_ifType" enum from snmp_mib2.h) */

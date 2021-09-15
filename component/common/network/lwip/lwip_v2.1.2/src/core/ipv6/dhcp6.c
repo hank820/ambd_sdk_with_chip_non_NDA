@@ -77,6 +77,17 @@
 #define LWIP_HOOK_DHCP6_PARSE_OPTION(netif, dhcp6, state, msg, msg_type, option, len, pbuf, offset) do { LWIP_UNUSED_ARG(msg); } while(0)
 #endif
 
+#if LWIP_IPV4 && LWIP_IPV6
+#if LWIP_DNS && LWIP_DHCP6_MAX_DNS_SERVERS
+#if DNS_IPV4_IPV6_MAX_SERVERS > LWIP_DHCP6_MAX_DNS_SERVERS
+#define LWIP_DHCP6_PROVIDE_DNS_SERVERS LWIP_DHCP6_MAX_DNS_SERVERS
+#else
+#define LWIP_DHCP6_PROVIDE_DNS_SERVERS DNS_IPV4_IPV6_MAX_SERVERS
+#endif
+#else
+#define LWIP_DHCP6_PROVIDE_DNS_SERVERS 0
+#endif
+#else
 #if LWIP_DNS && LWIP_DHCP6_MAX_DNS_SERVERS
 #if DNS_MAX_SERVERS > LWIP_DHCP6_MAX_DNS_SERVERS
 #define LWIP_DHCP6_PROVIDE_DNS_SERVERS LWIP_DHCP6_MAX_DNS_SERVERS
@@ -86,7 +97,7 @@
 #else
 #define LWIP_DHCP6_PROVIDE_DNS_SERVERS 0
 #endif
-
+#endif
 
 /** Option handling: options are parsed in dhcp6_parse_reply
  * and saved in an array where other functions can load them from.
@@ -126,6 +137,7 @@ struct dhcp6_option_info dhcp6_rx_options[DHCP6_OPTION_IDX_MAX];
 
 extern int rtw_get_random_bytes(void* dst, u32 size);
 extern void *pvPortMalloc( size_t xWantedSize );
+extern void nd6_restart_netif(struct netif *netif);
 
 const ip_addr_t dhcp6_All_DHCP6_Relay_Agents_and_Servers = IPADDR6_INIT_HOST(0xFF020000, 0, 0, 0x00010002);
 const ip_addr_t dhcp6_All_DHCP6_Servers = IPADDR6_INIT_HOST(0xFF020000, 0, 0, 0x00010003);
@@ -136,6 +148,23 @@ static u8_t dhcp6_pcb_refcount;
 
 /* receive, unfold, parse and free incoming messages */
 static void dhcp6_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
+
+#if LWIP_IPV6_DHCP6_STATEFUL
+static void dhcp6_stateful_solicit(struct netif *netif);
+static void dhcp6_stateful_request(struct netif *netif);
+static void dhcp6_stateful_bind(struct netif *netif);
+static void dhcp6_stateful_renew(struct netif *netif);
+static void dhcp6_stateful_rebind(struct netif *netif);
+static void dhcp6_stateful_confirm(struct netif *netif);
+static void dhcp6_stateful_release(struct netif *netif);
+err_t dhcp6_release(struct netif *netif);
+static void dhcp6_stateful_decline(struct netif *netif);
+static void dhcp6_stateful_handle_advertise(struct netif *netif, struct pbuf *p_msg_in);
+static void dhcp6_stateful_handle_reply(struct netif *netif, struct pbuf *p_msg_in);
+static err_t dhcp6_stateful_config(struct netif *netif, struct dhcp6 *dhcp6);
+static void dhcp6_stateful_abort_config(struct dhcp6 *dhcp6);
+u8_t dhcp6_supplied_address(const struct netif *netif);
+#endif /* LWIP_IPV6_DHCP6_STATEFUL */
 
 /** Ensure DHCP PCB is allocated and bound */
 static err_t
@@ -345,7 +374,9 @@ dhcp6_enabled(struct dhcp6 *dhcp6)
   if ((dhcp6->state == DHCP6_STATE_IDLE) ||
       (dhcp6->state == DHCP6_STATE_REQUESTING_CONFIG)||
       (dhcp6->state == DHCP6_STATE_STATEFUL_SOLICITING)||
-      (dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING)) {
+      (dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING)||
+      (dhcp6->state == DHCP6_STATE_STATEFUL_RENEWING)||
+      (dhcp6->state == DHCP6_STATE_STATEFUL_REBINDING)) {
     return 1;
   }
   return 0;
@@ -362,6 +393,13 @@ dhcp6_enable(struct netif *netif)
   if (dhcp6 == NULL) {
     return ERR_MEM;
   }
+
+  if ((netif->rs_count < LWIP_ND6_MAX_MULTICAST_SOLICIT) && netif_is_up(netif) && netif_is_link_up(netif) &&
+    !ip6_addr_isinvalid(netif_ip6_addr_state(netif, 0)) &&
+    !ip6_addr_isduplicated(netif_ip6_addr_state(netif, 0))){
+    nd6_restart_netif(netif);
+  }
+
   if (dhcp6_enabled(dhcp6)) {
     LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("dhcp6_enable(): DHCPv6 already enabled"));
     return ERR_OK;
@@ -530,7 +568,7 @@ dhcp6_option_ia_na(u16_t options_out_len, u8_t *options, u16_t max_len, u16_t ia
     sizeof(struct dhcp6_msg) + options_out_len + 4U + ia_na_len <= max_len);
   LWIP_UNUSED_ARG(max_len);
 
-  rtw_get_random_bytes(&iaid, sizeof(u32_t));
+  iaid = LWIP_RAND() & 0xFFFFFFFF;
 
   ret = dhcp6_option_short(options_out_len, options, DHCP6_OPTION_IA_NA);
   ret = dhcp6_option_short(ret, options, ia_na_len);
@@ -612,9 +650,13 @@ dhcp6_information_request(struct netif *netif, struct dhcp6 *dhcp6)
   u16_t msecs;
   struct pbuf *p_out;
   u16_t options_out_len;
+  u16_t optionrequest_len = sizeof(requested_options);
+  u16_t elapsed_time_len = 2;
+  u16_t opt_len_alloc = 4 + optionrequest_len + 4 + elapsed_time_len;
+
   LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_information_request()\n"));
   /* create and initialize the DHCP message header */
-  p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_INFOREQUEST, 4 + sizeof(requested_options), &options_out_len);
+  p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_INFOREQUEST, opt_len_alloc, &options_out_len);
   if (p_out != NULL) {
     err_t err;
     struct dhcp6_msg *msg_out = (struct dhcp6_msg *)p_out->payload;
@@ -623,6 +665,7 @@ dhcp6_information_request(struct netif *netif, struct dhcp6 *dhcp6)
 
     options_out_len = dhcp6_option_optionrequest(options_out_len, options, requested_options,
       LWIP_ARRAYSIZE(requested_options), p_out->len);
+    options_out_len = dhcp6_option_elapsed_time(options_out_len, options, p_out->len, elapsed_time_len);
     LWIP_HOOK_DHCP6_APPEND_OPTIONS(netif, dhcp6, DHCP6_STATE_REQUESTING_CONFIG, msg_out,
       DHCP6_INFOREQUEST, options_out_len, p_out->len);
     dhcp6_msg_finalize(options_out_len, p_out);
@@ -686,8 +729,13 @@ dhcp6_handle_config_reply(struct netif *netif, struct pbuf *p_msg_in)
 
     memset(&dns_addr, 0, sizeof(dns_addr));
     dns_addr6 = ip_2_ip6(&dns_addr);
+#if LWIP_IPV4 && LWIP_IPV6
+    for (n = DNS_MAX_SERVERS, idx = op_start; (idx < op_start + op_len) && (n < LWIP_DHCP6_PROVIDE_DNS_SERVERS);
+         n++, idx += sizeof(struct ip6_addr_packed)) {
+#else
     for (n = 0, idx = op_start; (idx < op_start + op_len) && (n < LWIP_DHCP6_PROVIDE_DNS_SERVERS);
          n++, idx += sizeof(struct ip6_addr_packed)) {
+#endif
       u16_t copied = pbuf_copy_partial(p_msg_in, dns_addr6, sizeof(struct ip6_addr_packed), idx);
       if (copied != sizeof(struct ip6_addr_packed)) {
         /* pbuf length mismatch */
@@ -729,9 +777,11 @@ dhcp6_handle_config_reply(struct netif *netif, struct pbuf *p_msg_in)
 
 #if LWIP_IPV6_DHCP6_STATEFUL
 static void
-dhcp6_stateful_solicit(struct netif *netif, struct dhcp6 *dhcp6)
+dhcp6_stateful_solicit(struct netif *netif)
 {
-  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS, DHCP6_OPTION_CLIENTID};
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS};
   u16_t msecs;
   struct pbuf *p_out;
   u16_t options_out_len;
@@ -776,9 +826,11 @@ dhcp6_stateful_solicit(struct netif *netif, struct dhcp6 *dhcp6)
 }
 
 static void
-dhcp6_stateful_request(struct netif *netif, struct dhcp6 *dhcp6)
+dhcp6_stateful_request(struct netif *netif)
 {
-  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS, DHCP6_OPTION_CLIENTID};
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS};
   u16_t msecs;
   struct pbuf *p_out;
   u16_t options_out_len;
@@ -826,6 +878,437 @@ dhcp6_stateful_request(struct netif *netif, struct dhcp6 *dhcp6)
   LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_request(): set request timeout %"U16_F" msecs\n", msecs));
 }
 
+/**
+ * Bind the interface to the offered IPv6 address.
+ *
+ * @param netif network interface to bind to the offered address
+ */
+static void
+dhcp6_stateful_bind(struct netif *netif)
+{
+  u32_t timeout;
+  s8_t i, free_idx;
+
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  /* reset time used of lease */
+  dhcp6->lease_used = 0;
+
+  /* set lease period timer */
+  if (dhcp6->offered_t0_lease != 0xffffffffUL) {
+    timeout = (dhcp6->offered_t0_lease + DHCP6_LEASE_TIMER_SECS / 2) / DHCP6_LEASE_TIMER_SECS;
+    if (timeout > 0xffff) {
+      timeout = 0xffff;
+    }
+    dhcp6->t0_timeout = (u16_t)timeout;
+    if (dhcp6->t0_timeout == 0) {
+      dhcp6->t0_timeout = 1;
+    }
+  }
+  /* set renewal period timer */
+  if (dhcp6->offered_t1_renew != 0xffffffffUL) {
+    timeout = (dhcp6->offered_t1_renew + DHCP6_LEASE_TIMER_SECS / 2) / DHCP6_LEASE_TIMER_SECS;
+    if (timeout > 0xffff) {
+      timeout = 0xffff;
+    }
+    dhcp6->t1_timeout = (u16_t)timeout;
+    if (dhcp6->t1_timeout == 0) {
+      dhcp6->t1_timeout = 1;
+    }
+    dhcp6->t1_renew_time = dhcp6->t1_timeout;
+  }
+  /* set rebind period timer */
+  if (dhcp6->offered_t2_rebind != 0xffffffffUL) {
+    timeout = (dhcp6->offered_t2_rebind + DHCP6_LEASE_TIMER_SECS / 2) / DHCP6_LEASE_TIMER_SECS;
+    if (timeout > 0xffff) {
+      timeout = 0xffff;
+    }
+    dhcp6->t2_timeout = (u16_t)timeout;
+    if (dhcp6->t2_timeout == 0) {
+      dhcp6->t2_timeout = 1;
+    }
+    dhcp6->t2_rebind_time = dhcp6->t2_timeout;
+  }
+
+  /* Find a free address slots */
+  free_idx = 0;
+  for (i = 1; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+    if (ip6_addr_isinvalid(netif_ip6_addr_state(netif, i)))
+      free_idx = i;
+    if(free_idx)
+      break;
+  }
+  if (free_idx == 0) {
+    return; /* no address slots available, try again on next advertisement */
+  }
+
+  /* Assign the new address to the interface. */  
+  ip_addr_copy_from_ip6(netif->ip6_addr[free_idx], dhcp6->offered_ip6_addr);
+  netif_ip6_addr_set_valid_life(netif, free_idx, dhcp6->offered_t0_lease);
+  netif_ip6_addr_set_pref_life(netif, free_idx, dhcp6->offered_t1_renew);
+  netif_ip6_addr_set_state(netif, free_idx, IP6_ADDR_TENTATIVE);
+  dhcp6_set_state(dhcp6, DHCP6_STATE_STATEFUL_BOUND, "dhcp6_stateful_bind()");
+}
+
+/**
+ * @ingroup dhcp6
+ * Renew an existing DHCPv6 lease at the involved DHCPv6 server.
+ *
+ * @param netif network interface which must renew its lease
+ */
+static void
+dhcp6_stateful_renew(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS};
+  u16_t msecs;
+  struct pbuf *p_out;
+  u16_t options_out_len;
+  u16_t clientid_len =  4 + netif->hwaddr_len;
+  u16_t optionrequest_len = sizeof(requested_options);
+  u16_t elapsed_time_len = 2;
+  u16_t ia_na_ia_len = dhcp6->ia_na_len;
+  u16_t serverid_len = dhcp6->server_id_len;
+  u16_t opt_len_alloc = 4 + clientid_len + 4 + optionrequest_len + 4 + elapsed_time_len + 4 + ia_na_ia_len + 4 + serverid_len;
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_renew()\n"));
+  /* create and initialize the DHCP message header */
+  p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_RENEW, opt_len_alloc, &options_out_len);
+  if (p_out != NULL) {
+    err_t err;
+    struct dhcp6_msg *msg_out = (struct dhcp6_msg *)p_out->payload;
+    u8_t *options = (u8_t *)(msg_out + 1);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_renew: making renew request\n"));
+
+    options_out_len = dhcp6_option_clientid(options_out_len, options, p_out->len, netif, clientid_len);
+    options_out_len = dhcp6_option_serverid(options_out_len, options, p_out->len, 
+      dhcp6->server_id_buf, dhcp6->server_id_len);
+    options_out_len = dhcp6_option_optionrequest(options_out_len, options, requested_options,
+      LWIP_ARRAYSIZE(requested_options), p_out->len);
+    options_out_len = dhcp6_option_elapsed_time(options_out_len, options, p_out->len, elapsed_time_len);
+    options_out_len = dhcp6_option_ia_na_iaaddr(options_out_len, options, p_out->len,
+      dhcp6->ia_na_buf, dhcp6->ia_na_len);
+    LWIP_HOOK_DHCP6_APPEND_OPTIONS(netif, dhcp6, DHCP6_STATE_STATEFUL_RENEWING, msg_out,
+      DHCP6_RENEW, options_out_len, p_out->len);
+    dhcp6_msg_finalize(options_out_len, p_out); 
+
+    err = udp_sendto_if(dhcp6_pcb, p_out, &dhcp6_All_DHCP6_Relay_Agents_and_Servers, DHCP6_SERVER_PORT, netif);
+    pbuf_free(p_out);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_renew: RENEWING -> %d\n", (int)err));
+    LWIP_UNUSED_ARG(err);
+  } else {
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS, ("dhcp6_stateful_renew: could not allocate DHCP6 renew request\n"));
+  }
+  dhcp6_set_state(dhcp6, DHCP6_STATE_STATEFUL_RENEWING, "dhcp6_stateful_renew");
+  if (dhcp6->tries < 255) {
+    dhcp6->tries++;
+  }
+  msecs = (u16_t)(dhcp6->tries < 10 ? dhcp6->tries * 2000 : 20 * 1000);
+  dhcp6->request_timeout = (u16_t)((msecs + DHCP6_TIMER_MSECS - 1) / DHCP6_TIMER_MSECS);
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_renew(): set renew request timeout %"U16_F" msecs\n", msecs));
+}
+
+/**
+ * Rebind with a DHCPv6 server for an existing DHCPv6 lease.
+ *
+ * @param netif network interface which must rebind with a DHCPv6 server
+ */
+static void
+dhcp6_stateful_rebind(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+  
+  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS, DHCP6_OPTION_CLIENTID};
+  u16_t msecs;
+  struct pbuf *p_out;
+  u16_t options_out_len;
+  u16_t clientid_len =  4 + netif->hwaddr_len;
+  u16_t optionrequest_len = sizeof(requested_options);
+  u16_t elapsed_time_len = 2;
+  u16_t ia_na_ia_len = dhcp6->ia_na_len;
+  u16_t opt_len_alloc = 4 + clientid_len + 4 + optionrequest_len + 4 + elapsed_time_len + 4 + ia_na_ia_len;
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_rebind()\n"));
+  /* create and initialize the DHCP message header */
+  p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_REBIND, opt_len_alloc, &options_out_len);
+  if (p_out != NULL) {
+    err_t err;
+    struct dhcp6_msg *msg_out = (struct dhcp6_msg *)p_out->payload;
+    u8_t *options = (u8_t *)(msg_out + 1);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_rebind: making rebind request\n"));
+
+    options_out_len = dhcp6_option_clientid(options_out_len, options, p_out->len, netif, clientid_len);
+    options_out_len = dhcp6_option_optionrequest(options_out_len, options, requested_options,
+      LWIP_ARRAYSIZE(requested_options), p_out->len);
+    options_out_len = dhcp6_option_elapsed_time(options_out_len, options, p_out->len, elapsed_time_len);
+    options_out_len = dhcp6_option_ia_na_iaaddr(options_out_len, options, p_out->len,
+      dhcp6->ia_na_buf, dhcp6->ia_na_len);
+    LWIP_HOOK_DHCP6_APPEND_OPTIONS(netif, dhcp6, DHCP6_STATE_STATEFUL_REBINDING, msg_out,
+      DHCP6_REBIND, options_out_len, p_out->len);
+    dhcp6_msg_finalize(options_out_len, p_out); 
+
+    err = udp_sendto_if(dhcp6_pcb, p_out, &dhcp6_All_DHCP6_Relay_Agents_and_Servers, DHCP6_SERVER_PORT, netif);
+    pbuf_free(p_out);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_rebind: REBINDING -> %d\n", (int)err));
+    LWIP_UNUSED_ARG(err);
+  } else {
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS, ("dhcp6_stateful_rebind: could not allocate DHCP6 rebind request\n"));
+  }
+  dhcp6_set_state(dhcp6, DHCP6_STATE_STATEFUL_REBINDING, "dhcp6_stateful_rebind");
+  if (dhcp6->tries < 255) {
+    dhcp6->tries++;
+  }
+  msecs = (u16_t)((dhcp6->tries < 10 ? dhcp6->tries * 1000 : 10 * 1000));
+  dhcp6->request_timeout = (u16_t)((msecs + DHCP6_TIMER_MSECS - 1) / DHCP6_TIMER_MSECS);
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_rebind(): set rebind request timeout %"U16_F" msecs\n", msecs));
+}
+
+/**
+ * Confirm with a DHCPv6 server to determine whether the addresses it was assigned 
+ * are still appropriate to the link to which the client is connected.
+ *
+ * @param netif network interface which must rebind with a DHCPv6 server
+ */
+static void
+dhcp6_stateful_confirm(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  const u16_t requested_options[] = {DHCP6_OPTION_DNS_SERVERS, DHCP6_OPTION_DOMAIN_LIST, DHCP6_OPTION_SNTP_SERVERS};
+  u16_t msecs;
+  struct pbuf *p_out;
+  u16_t options_out_len;
+  u16_t clientid_len =  4 + netif->hwaddr_len;
+  u16_t optionrequest_len = sizeof(requested_options);
+  u16_t elapsed_time_len = 2;
+  u16_t ia_na_ia_len = dhcp6->ia_na_len;
+  u16_t opt_len_alloc = 4 + clientid_len + 4 + optionrequest_len + 4 + elapsed_time_len + 4 + ia_na_ia_len;
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_confirm()\n"));
+  /* create and initialize the DHCP message header */
+  p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_CONFIRM, opt_len_alloc, &options_out_len);
+  if (p_out != NULL) {
+    err_t err;
+    struct dhcp6_msg *msg_out = (struct dhcp6_msg *)p_out->payload;
+    u8_t *options = (u8_t *)(msg_out + 1);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_confirm: making confirm request\n"));
+
+    options_out_len = dhcp6_option_clientid(options_out_len, options, p_out->len, netif, clientid_len);
+    options_out_len = dhcp6_option_optionrequest(options_out_len, options, requested_options,
+      LWIP_ARRAYSIZE(requested_options), p_out->len);
+    options_out_len = dhcp6_option_elapsed_time(options_out_len, options, p_out->len, elapsed_time_len);
+    options_out_len = dhcp6_option_ia_na_iaaddr(options_out_len, options, p_out->len,
+      dhcp6->ia_na_buf, dhcp6->ia_na_len);
+    LWIP_HOOK_DHCP6_APPEND_OPTIONS(netif, dhcp6, DHCP6_STATE_STATEFUL_CONFIRMING, msg_out,
+      DHCP6_CONFIRM, options_out_len, p_out->len);
+    dhcp6_msg_finalize(options_out_len, p_out); 
+
+    err = udp_sendto_if(dhcp6_pcb, p_out, &dhcp6_All_DHCP6_Relay_Agents_and_Servers, DHCP6_SERVER_PORT, netif);
+    pbuf_free(p_out);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_confirm: CONFIRMING -> %d\n", (int)err));
+    LWIP_UNUSED_ARG(err);
+  } else {
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS, ("dhcp6_stateful_confirm: could not allocate DHCP6 confirm request\n"));
+  }
+  dhcp6_set_state(dhcp6, DHCP6_STATE_STATEFUL_CONFIRMING, "dhcp6_stateful_confirm");
+  if (dhcp6->tries < 255) {
+    dhcp6->tries++;
+  }
+  msecs = (u16_t)((dhcp6->tries < 6 ? 1 << dhcp6->tries : 60) * 1000);
+  dhcp6->request_timeout = (u16_t)((msecs + DHCP6_TIMER_MSECS - 1) / DHCP6_TIMER_MSECS);
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_confirm(): set confirm request timeout %"U16_F" msecs\n", msecs));
+}
+
+/**
+ * @ingroup dhcp6
+ * Release a DHCPv6 lease and stop DHCPv6 statemachine.
+ *
+ * @param netif network interface
+ */
+static void
+dhcp6_stateful_release(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  if (dhcp6 == NULL) {
+    return;
+  }
+
+//  u16_t msecs;
+  struct pbuf *p_out;
+  u16_t options_out_len;
+  u16_t clientid_len =  4 + netif->hwaddr_len;
+  u16_t elapsed_time_len = 2;
+  u16_t ia_na_ia_len = dhcp6->ia_na_len;
+  u16_t serverid_len = dhcp6->server_id_len;
+  u16_t opt_len_alloc = 4 + clientid_len +  4 + elapsed_time_len + 4 + ia_na_ia_len + 4 + serverid_len;
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_release()\n"));
+
+  /* already off? -> nothing to do */
+  if (dhcp6->state == DHCP6_STATE_OFF) {
+    return;
+  }
+
+  /* get index of the IPv6 address to release */
+  s8_t idx = 0;
+  for (int i = 1; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+    if (!ip6_addr_isinvalid(netif_ip6_addr_state(netif, i))) {
+      if (ip6_addr_cmp(&dhcp6->offered_ip6_addr, netif_ip6_addr(netif, i))) {
+        idx = i;
+      }
+    }
+  }
+  if (idx == 0) {
+    return; /* no address slot is assigned by the releasing address*/
+  }
+
+  /* clean old DHCPv6 offer */
+  ip6_addr_set_zero(&dhcp6->offered_ip6_addr);
+  dhcp6->offered_t0_lease = dhcp6->offered_t1_renew = dhcp6->offered_t2_rebind = 0;
+  dhcp6->t1_renew_time = dhcp6->t2_rebind_time = dhcp6->lease_used = dhcp6->t0_timeout = 0;
+
+  /* send release message when current IP was assigned via DHCPv6 */
+  if (dhcp6_supplied_address(netif)) { 
+  /* create and initialize the DHCP message header */
+    p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_RELEASE, opt_len_alloc, &options_out_len);
+    if (p_out != NULL) {
+      err_t err;
+      struct dhcp6_msg *msg_out = (struct dhcp6_msg *)p_out->payload;
+      u8_t *options = (u8_t *)(msg_out + 1);
+      LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_release: making release request\n"));
+
+      options_out_len = dhcp6_option_clientid(options_out_len, options, p_out->len, netif, clientid_len);
+      options_out_len = dhcp6_option_serverid(options_out_len, options, p_out->len, 
+        dhcp6->server_id_buf, dhcp6->server_id_len);
+      options_out_len = dhcp6_option_elapsed_time(options_out_len, options, p_out->len, elapsed_time_len);
+      options_out_len = dhcp6_option_ia_na_iaaddr(options_out_len, options, p_out->len,
+        dhcp6->ia_na_buf, dhcp6->ia_na_len);
+      LWIP_HOOK_DHCP6_APPEND_OPTIONS(netif, dhcp6, DHCP6_STATE_STATEFUL_RELEASING, msg_out,
+        DHCP6_RELEASE, options_out_len, p_out->len);
+      dhcp6_msg_finalize(options_out_len, p_out); 
+
+      err = udp_sendto_if(dhcp6_pcb, p_out, &dhcp6_All_DHCP6_Relay_Agents_and_Servers, DHCP6_SERVER_PORT, netif);
+      pbuf_free(p_out);
+      LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_release: RELEASING -> %d\n", (int)err));
+      LWIP_UNUSED_ARG(err);
+    } else {
+      LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS, ("dhcp6_stateful_release: could not allocate DHCP6 release request\n"));
+    }
+  }
+  dhcp6_set_state(dhcp6, DHCP6_STATE_STATEFUL_RELEASING, "dhcp6_stateful_release");
+  //if (dhcp6->tries < 255) {
+  //  dhcp6->tries++;
+  //}
+  //msecs = (u16_t)((dhcp6->tries < 6 ? 1 << dhcp6->tries : 60) * 1000);
+  //dhcp6->request_timeout = (u16_t)((msecs + DHCP6_TIMER_MSECS - 1) / DHCP6_TIMER_MSECS);
+  //LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_release(): set release request timeout %"U16_F" msecs\n", msecs));
+
+  /* remove IP address from interface (prevents routing from selecting this interface) */
+  netif_ip6_addr_set(netif, idx, IP6_ADDR_ANY6);
+  netif_ip6_addr_set_valid_life(netif, idx, 0);
+  netif_ip6_addr_set_pref_life(netif, idx, 0);
+  netif_ip6_addr_set_state(netif, idx, IP6_ADDR_INVALID);
+
+  dhcp6_set_state(dhcp6, DHCP6_STATE_OFF, "dhcp6_stateful_release");
+
+  if (dhcp6->pcb_allocated != 0) {
+    dhcp6_dec_pcb_refcount(); /* free DHCP PCB if not needed any more */
+    dhcp6->pcb_allocated = 0;
+  }
+}
+
+
+/**
+ * @ingroup dhcp6
+ * This function calls dhcp6_stateful_release() internally.
+ * @deprecated Use dhcp6_stateful_release() instead.
+ */
+
+err_t
+dhcp6_release(struct netif *netif)
+{
+  dhcp6_stateful_release(netif);
+  return ERR_OK;
+}
+
+static void
+dhcp6_stateful_decline(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  u16_t msecs;
+  struct pbuf *p_out;
+  u16_t options_out_len;
+  u16_t clientid_len =  4 + netif->hwaddr_len;
+  u16_t elapsed_time_len = 2;
+  u16_t ia_na_ia_len = dhcp6->ia_na_len;
+  u16_t serverid_len = dhcp6->server_id_len;
+  u16_t opt_len_alloc = 4 + clientid_len +  4 + elapsed_time_len + 4 + ia_na_ia_len + 4 + serverid_len;
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_decline()\n"));
+
+  /* get index of the IPv6 address to decline */
+  s8_t idx = 0;
+  for (int i = 1; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+    if (!ip6_addr_isinvalid(netif_ip6_addr_state(netif, i))) {
+      if (ip6_addr_cmp(&dhcp6->offered_ip6_addr, netif_ip6_addr(netif, i))) {
+        idx = i;
+      }
+    }
+  }
+  if (idx == 0) {
+    return; /* no address slot is assigned by the declining address*/
+  }
+
+  /* create and initialize the DHCP message header */
+  p_out = dhcp6_create_msg(netif, dhcp6, DHCP6_DECLINE, opt_len_alloc, &options_out_len);
+  if (p_out != NULL) {
+    err_t err;
+    struct dhcp6_msg *msg_out = (struct dhcp6_msg *)p_out->payload;
+    u8_t *options = (u8_t *)(msg_out + 1);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_stateful_decline: making decline request\n"));
+
+    options_out_len = dhcp6_option_clientid(options_out_len, options, p_out->len, netif, clientid_len);
+    options_out_len = dhcp6_option_serverid(options_out_len, options, p_out->len, 
+      dhcp6->server_id_buf, dhcp6->server_id_len);
+    options_out_len = dhcp6_option_elapsed_time(options_out_len, options, p_out->len, elapsed_time_len);
+    options_out_len = dhcp6_option_ia_na_iaaddr(options_out_len, options, p_out->len,
+      dhcp6->ia_na_buf, dhcp6->ia_na_len);
+    LWIP_HOOK_DHCP6_APPEND_OPTIONS(netif, dhcp6, DHCP6_STATE_STATEFUL_RELEASING, msg_out,
+      DHCP6_DECLINE, options_out_len, p_out->len);
+    dhcp6_msg_finalize(options_out_len, p_out); 
+
+    err = udp_sendto_if(dhcp6_pcb, p_out, &dhcp6_All_DHCP6_Relay_Agents_and_Servers, DHCP6_SERVER_PORT, netif);
+    pbuf_free(p_out);
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_decline: DECLINING -> %d\n", (int)err));
+    LWIP_UNUSED_ARG(err);
+  } else {
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS, ("dhcp6_stateful_decline: could not allocate DHCP6 decline request\n"));
+  }
+  dhcp6_set_state(dhcp6, DHCP6_STATE_STATEFUL_DECLINING, "dhcp6_stateful_decline");
+  //if (dhcp6->tries < 255) {
+  //  dhcp6->tries++;
+  //}
+  //msecs = (u16_t)((dhcp6->tries < 6 ? 1 << dhcp6->tries : 60) * 1000);
+  //dhcp6->request_timeout = (u16_t)((msecs + DHCP6_TIMER_MSECS - 1) / DHCP6_TIMER_MSECS);
+  //LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_stateful_decline(): set decline request timeout %"U16_F" msecs\n", msecs));
+
+  /* remove IP address from interface (prevents routing from selecting this interface) */
+  netif_ip6_addr_set(netif, idx, IP6_ADDR_ANY6);
+  netif_ip6_addr_set_valid_life(netif, idx, 0);
+  netif_ip6_addr_set_pref_life(netif, idx, 0);
+  netif_ip6_addr_set_state(netif, idx, IP6_ADDR_INVALID);
+
+  dhcp6_set_state(dhcp6, DHCP6_STATE_OFF, "dhcp6_stateful_decline");
+
+  if (dhcp6->pcb_allocated != 0) {
+    dhcp6_dec_pcb_refcount(); /* free DHCP PCB if not needed any more */
+    dhcp6->pcb_allocated = 0;
+  }
+}
+
 static void
 dhcp6_stateful_handle_advertise(struct netif *netif, struct pbuf *p_msg_in)
 {
@@ -838,39 +1321,18 @@ dhcp6_stateful_handle_advertise(struct netif *netif, struct pbuf *p_msg_in)
     /* Get option server id buffer*/
     op_start = dhcp6_get_option_start(dhcp6, DHCP6_OPTION_IDX_SERVER_ID);
     op_len = dhcp6_get_option_length(dhcp6, DHCP6_OPTION_IDX_SERVER_ID);
-    dhcp6->server_id_buf = (u8_t *)malloc(op_len);
     dhcp6->server_id_len = pbuf_copy_partial(p_msg_in, dhcp6->server_id_buf, op_len, op_start);
 
     /* Get option IA_NA buffer*/
     op_start = dhcp6_get_option_start(dhcp6, DHCP6_OPTION_IDX_IA_NA);
     op_len = dhcp6_get_option_length(dhcp6, DHCP6_OPTION_IDX_IA_NA);
-    dhcp6->ia_na_buf = (u8_t *)malloc(op_len);
+    if(op_len <= 12){
+      /* IA Address option field is not contained */
+      return;
+    }
     dhcp6->ia_na_len = pbuf_copy_partial(p_msg_in, dhcp6->ia_na_buf, op_len, op_start);
 
-    dhcp6_stateful_request(netif, dhcp6);
-
-    free(dhcp6->server_id_buf);
-    free(dhcp6->ia_na_buf);
-  }
-}
-
-static err_t
-dhcp6_stateful_config(struct netif *netif, struct dhcp6 *dhcp6)
-{
-  /* stateful mode enabled and no solicit/request running? */
-  if (dhcp6->state == DHCP6_STATE_IDLE) {
-    /* send solicit and wait for answer; setup receive timeout */
-    dhcp6_stateful_solicit(netif, dhcp6);
-  }
-  return ERR_OK;
-}
-
-static void
-dhcp6_stateful_abort_config(struct dhcp6 *dhcp6)
-{
-  if ((dhcp6->state == DHCP6_STATE_STATEFUL_SOLICITING) || (dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING)){
-    /* abort running request */
-    dhcp6_set_state(dhcp6, DHCP6_STATE_IDLE, "dhcp6_stateful_abort_config_request");
+    dhcp6_stateful_request(netif);
   }
 }
 
@@ -882,14 +1344,14 @@ dhcp6_stateful_handle_reply(struct netif *netif, struct pbuf *p_msg_in)
 {
   u16_t op_start;
   u16_t op_len;
-  ip6_addr_t ip6addr;
+//  ip6_addr_t ip6addr;
   u16_t dataptr_short;
   u32_t dataptr_long;
   u32_t renew;
   u32_t rebind;
   u32_t valid_life;
   u32_t pref_life;
-  s8_t i, free_idx;
+//  s8_t i, free_idx;
 
   struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
 
@@ -904,8 +1366,13 @@ dhcp6_stateful_handle_reply(struct netif *netif, struct pbuf *p_msg_in)
 
     memset(&dns_addr, 0, sizeof(dns_addr));
     dns_addr6 = ip_2_ip6(&dns_addr);
+#if LWIP_IPV4 && LWIP_IPV6
+    for (n = DNS_MAX_SERVERS, idx = op_start; (idx < op_start + op_len) && (n < LWIP_DHCP6_PROVIDE_DNS_SERVERS);
+         n++, idx += sizeof(struct ip6_addr_packed)) {
+#else
     for (n = 0, idx = op_start; (idx < op_start + op_len) && (n < LWIP_DHCP6_PROVIDE_DNS_SERVERS);
          n++, idx += sizeof(struct ip6_addr_packed)) {
+#endif
       u16_t copied = pbuf_copy_partial(p_msg_in, dns_addr6, sizeof(struct ip6_addr_packed), idx);
       if (copied != sizeof(struct ip6_addr_packed)) {
         /* pbuf length mismatch */
@@ -942,11 +1409,18 @@ dhcp6_stateful_handle_reply(struct netif *netif, struct pbuf *p_msg_in)
     dhcp6_set_ntp_servers(n, ntp_server_addrs);
   }
 #endif /* LWIP_DHCP6_GET_NTP_SRV */
+  /* Get option server id buffer*/
+  if (dhcp6_option_given(dhcp6, DHCP6_OPTION_IDX_SERVER_ID)){
+    op_start = dhcp6_get_option_start(dhcp6, DHCP6_OPTION_IDX_SERVER_ID);
+    op_len = dhcp6_get_option_length(dhcp6, DHCP6_OPTION_IDX_SERVER_ID);
+    dhcp6->server_id_len = pbuf_copy_partial(p_msg_in, dhcp6->server_id_buf, op_len, op_start);
+  }
 
-  /* Get IA address */
+  /* Get IA address buffer and options*/
   if (dhcp6_option_given(dhcp6, DHCP6_OPTION_IDX_IA_NA)) {
-      op_start = dhcp6_get_option_start(dhcp6, DHCP6_OPTION_IDX_IA_NA);
+    op_start = dhcp6_get_option_start(dhcp6, DHCP6_OPTION_IDX_IA_NA);
     op_len = dhcp6_get_option_length(dhcp6, DHCP6_OPTION_IDX_IA_NA);
+    dhcp6->ia_na_len = pbuf_copy_partial(p_msg_in, dhcp6->ia_na_buf, op_len, op_start);
 
     if(op_len <= 12){
       /* IA Address option field is not contained */
@@ -979,38 +1453,215 @@ dhcp6_stateful_handle_reply(struct netif *netif, struct pbuf *p_msg_in)
       return;
     }
 
-    /* Construct the new address that we intend to use, and then see if that
-     * address really does not exist. It might have been added manually, after
-     * all. As a side effect, find a free slot. Note that we cannot use
-     * netif_add_ip6_address() here, as it would return ERR_OK if the address
-     * already did exist, resulting in that address being given lifetimes. */
-    ip6addr.addr[0] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 16);
-    ip6addr.addr[1] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 20);
-    ip6addr.addr[2] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 24);
-    ip6addr.addr[3] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 28);
+    dhcp6->offered_t0_lease = valid_life;
+    dhcp6->offered_t1_renew = renew;
+    dhcp6->offered_t2_rebind = rebind;
 
-    free_idx = 0;
-    for (i = 1; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
-      if (!ip6_addr_isinvalid(netif_ip6_addr_state(netif, i))) {
-        if (ip6_addr_cmp(&ip6addr, netif_ip6_addr(netif, i))) {
-          return; /* formed address already exists */
-        }
-      } else if (free_idx == 0) {
-        free_idx = i;
-      }
-    }
-    if (free_idx == 0) {
-      return; /* no address slots available, try again on next advertisement */
-    }
+    /* Get offered ipv6 address */
+    dhcp6->offered_ip6_addr.addr[0] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 16);
+    dhcp6->offered_ip6_addr.addr[1] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 20);
+    dhcp6->offered_ip6_addr.addr[2] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 24);
+    dhcp6->offered_ip6_addr.addr[3] = dhcp6_get_long(p_msg_in, dataptr_long, op_start + 28);
 
-    /* Assign the new address to the interface. */
-    ip_addr_copy_from_ip6(netif->ip6_addr[free_idx], ip6addr);
-    netif_ip6_addr_set_valid_life(netif, free_idx, valid_life);
-    netif_ip6_addr_set_pref_life(netif, free_idx, pref_life);
-    netif_ip6_addr_set_state(netif, free_idx, IP6_ADDR_TENTATIVE);
+    dhcp6_stateful_bind(netif);
   }
 }
+
+static err_t
+dhcp6_stateful_config(struct netif *netif, struct dhcp6 *dhcp6)
+{
+  /* stateful mode enabled and no solicit/request running? */
+  if (dhcp6->state == DHCP6_STATE_IDLE) {
+    /* send solicit and wait for answer; setup receive timeout */
+    dhcp6_stateful_solicit(netif);
+  }
+  return ERR_OK;
+}
+
+static void
+dhcp6_stateful_abort_config(struct dhcp6 *dhcp6)
+{
+  if ((dhcp6->state == DHCP6_STATE_STATEFUL_SOLICITING) || (dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING)
+      || (dhcp6->state == DHCP6_STATE_STATEFUL_CONFIRMING)){
+    /* abort running request */
+    dhcp6_set_state(dhcp6, DHCP6_STATE_IDLE, "dhcp6_stateful_abort_config_request");
+  }
+}
+
+/** Handle a possible change in the network configuration.
+ *
+ * This enters the REBOOTING state to verify that the currently bound
+ * address is still valid.
+ */
+void
+dhcp6_network_changed(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  if (!dhcp6) {
+    return;
+  }
+  switch (dhcp6->state) {
+    case DHCP6_STATE_STATEFUL_REBINDING:
+    case DHCP6_STATE_STATEFUL_RENEWING:
+    case DHCP6_STATE_STATEFUL_BOUND:
+    case DHCP6_STATE_STATEFUL_CONFIRMING:
+      dhcp6->tries = 0;
+      dhcp6_stateful_confirm(netif);
+      break;
+    case DHCP6_STATE_OFF:
+    case DHCP6_STATE_REQUESTING_CONFIG:
+    case DHCP6_STATE_HANDLING_CONFIG:
+      /* stay off */
+      break;
+    default:
+      LWIP_ASSERT("invalid dhcp6->state", dhcp6->state <= DHCP6_STATE_STATEFUL_DECLINING);
+      /* ILDE/REQUESTING: restart with new 'rid' because the state changes, 
+       * SOLICITING: continue with current 'rid' as we stay in the same state */
+
+      /* ensure we start with short timeouts, even if already discovering */
+      dhcp6->tries = 0;
+      dhcp6_stateful_solicit(netif);
+      break;
+  }
+}
+
+/**
+ * The renewal period has timed out.
+ *
+ * @param netif the netif under DHCPv6 control
+ */
+static void
+dhcp6_t1_timeout(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_STATE, ("dhcp6_t1_timeout()\n"));
+  if ((dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING) || (dhcp6->state == DHCP6_STATE_STATEFUL_BOUND) ||
+      (dhcp6->state == DHCP6_STATE_STATEFUL_RENEWING)) {
+    /* just retry to renew - note that the rebind timer (t2) will
+     * eventually time-out if renew tries fail. */
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_t1_timeout(): must renew\n"));
+    /* This slightly different to RFC2131: DHCPREQUEST will be sent from state
+       DHCP_STATE_RENEWING, not DHCP_STATE_BOUND */
+    dhcp6_stateful_renew(netif);
+    /* Calculate next timeout */
+    if (((dhcp6->t2_timeout - dhcp6->lease_used) / 2) >= ((60 + DHCP6_LEASE_TIMER_SECS / 2) / DHCP6_LEASE_TIMER_SECS)) {
+      dhcp6->t1_renew_time = (u16_t)((dhcp6->t2_timeout - dhcp6->lease_used) / 2);
+    }
+  }
+}
+
+/**
+ * The rebind period has timed out.
+ *
+ * @param netif the netif under DHCPv6 control
+ */
+static void
+dhcp6_t2_timeout(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_t2_timeout()\n"));
+  if ((dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING) || (dhcp6->state == DHCP6_STATE_STATEFUL_BOUND) ||
+      (dhcp6->state == DHCP6_STATE_STATEFUL_RENEWING) || (dhcp6->state == DHCP6_STATE_STATEFUL_REBINDING)) {
+    /* just retry to rebind */
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_t2_timeout(): must rebind\n"));
+    /* This slightly different to RFC2131: DHCPREQUEST will be sent from state
+       DHCP_STATE_REBINDING, not DHCP_STATE_BOUND */
+    dhcp6_stateful_rebind(netif);
+    /* Calculate next timeout */
+    if (((dhcp6->t0_timeout - dhcp6->lease_used) / 2) >= ((60 + DHCP6_LEASE_TIMER_SECS / 2) / DHCP6_LEASE_TIMER_SECS)) {
+      dhcp6->t2_rebind_time = (u16_t)((dhcp6->t0_timeout - dhcp6->lease_used) / 2);
+    }
+  }
+}
+
+/**
+ * The DHCPv6 timer that checks for lease renewal/rebind timeouts.
+ * Must be called once a minute (see @ref DHCP6_LEASE_TIMER_SECS).
+ */
+void
+dhcp6_lease_tmr(void)
+{
+  struct netif *netif;
+  /* loop through netif's */
+  NETIF_FOREACH(netif) {
+    struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+    /* only act on DHCPv6 configured interfaces */
+    if ((dhcp6 != NULL) && (dhcp6->state != DHCP6_STATE_OFF)){
+      /* compare lease time to expire timeout */
+      if (dhcp6->t0_timeout && (++dhcp6->lease_used == dhcp6->t0_timeout)) {
+        LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_lease_tmr(): t0 timeout\n"));
+        /* this clients' lease time has expired */
+        dhcp6_release(netif);
+        dhcp6_enable(netif);
+        dhcp6_stateful_solicit(netif);
+        /* timer is active (non zero), and triggers (zeroes) now? */
+      } else if (dhcp6->t2_rebind_time && (dhcp6->t2_rebind_time-- == 1)) {
+        LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_lease_tmr(): t2 timeout\n"));
+        /* this clients' rebind timeout triggered */
+        dhcp6_t2_timeout(netif);
+        /* timer is active (non zero), and triggers (zeroes) now */
+      } else if (dhcp6->t1_renew_time && (dhcp6->t1_renew_time-- == 1)) {
+        LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp6_lease_tmr(): t1 timeout\n"));
+        /* this clients' renewal timeout triggered */
+        dhcp6_t1_timeout(netif);
+      }
+    }
+  }
+}
+
+/** check if DHCPv6 supplied netif->ip_addr
+ *
+ * @param netif the netif to check
+ * @return 1 if DHCPv6 supplied netif->ip_addr (states BOUND or RENEWING),
+ *         0 otherwise
+ */
+u8_t
+dhcp6_supplied_address(const struct netif *netif)
+{
+  if ((netif != NULL) && (netif_dhcp6_data(netif) != NULL)) {
+    struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+    return (dhcp6->state == DHCP6_STATE_STATEFUL_BOUND) || (dhcp6->state == DHCP6_STATE_STATEFUL_RENEWING) ||
+           (dhcp6->state == DHCP6_STATE_STATEFUL_REBINDING);
+  }
+  return 0;
+}
 #endif /* LWIP_IPV6_DHCP6_STATEFUL */
+
+/**
+ * @ingroup dhcp6
+ * This function calls dhcp6_stateful_release() internally.
+ * @deprecated Use dhcp6_stateful_release() instead.
+ */
+
+void
+dhcp6_stop(struct netif *netif)
+{
+  struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
+
+  if (dhcp6 == NULL) {
+    return;
+  }
+  
+#if LWIP_IPV6_DHCP6_STATEFUL  
+  dhcp6_stateful_release(netif);
+#endif
+
+  for (int idx = 1; idx < LWIP_IPV6_NUM_ADDRESSES; idx++) {
+    netif_ip6_addr_set(netif, idx, IP6_ADDR_ANY6);
+    netif_ip6_addr_set_valid_life(netif, idx, 0);
+    netif_ip6_addr_set_pref_life(netif, idx, 0);
+    netif_ip6_addr_set_state(netif, idx, IP6_ADDR_INVALID);
+  }
+  
+  if (dhcp6->state == DHCP6_STATE_OFF) {
+    return;
+  }
+  
+  dhcp6_set_state(dhcp6, DHCP6_STATE_OFF, "dhcp6_stateful_release");
+}
 
 /** This function is called from nd6 module when an RA messsage is received
  * It triggers DHCPv6 requests (if enabled).
@@ -1196,15 +1847,16 @@ dhcp6_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr
 #if LWIP_IPV6_DHCP6_STATELESS
     /* in info-requesting state? */
     if (dhcp6->state == DHCP6_STATE_REQUESTING_CONFIG) {
-      dhcp6_set_state(dhcp6, DHCP6_STATE_IDLE, "dhcp6_recv");
       dhcp6_handle_config_reply(netif, p);
+      dhcp6_set_state(dhcp6, DHCP6_STATE_HANDLING_CONFIG, "dhcp6_recv");
     } else
 #endif /* LWIP_IPV6_DHCP6_STATELESS */
     {
 #if LWIP_IPV6_DHCP6_STATEFUL
-      /* in stateful requesting state? */
-      if (dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING) {
-        dhcp6_set_state(dhcp6, DHCP6_STATE_IDLE, "dhcp6_recv");
+      /* in stateful state? */
+      if ((dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING) || (dhcp6->state == DHCP6_STATE_STATEFUL_RENEWING) 
+          || (dhcp6->state == DHCP6_STATE_STATEFUL_REBINDING) || (dhcp6->state == DHCP6_STATE_STATEFUL_CONFIRMING)
+          || (dhcp6->state == DHCP6_STATE_STATEFUL_RELEASING) || (dhcp6->state == DHCP6_STATE_STATEFUL_DECLINING)) {
         dhcp6_stateful_handle_reply(netif, p);
       }
 #endif /* LWIP_IPV6_DHCP6_STATEFUL */
@@ -1246,11 +1898,39 @@ dhcp6_timeout(struct netif *netif, struct dhcp6 *dhcp6)
   /* back-off period has passed, or server selection timed out */
   if (dhcp6->state == DHCP6_STATE_STATEFUL_SOLICITING){
     LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_timeout(): retrying solicit\n"));
-    dhcp6_stateful_solicit(netif, dhcp6);
+    if (dhcp6->tries <= 5) {
+      dhcp6_stateful_solicit(netif);
+    } else {
+      dhcp6_stateful_abort_config(dhcp6);
+    }
   }
   else if (dhcp6->state == DHCP6_STATE_STATEFUL_REQUESTING){
     LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_timeout(): retrying request\n"));
-    dhcp6_stateful_request(netif, dhcp6);
+    if (dhcp6->tries <= 5) {
+      dhcp6_stateful_request(netif);
+    } else {
+      dhcp6_stateful_abort_config(dhcp6);
+    }
+  }
+  else if (dhcp6->state == DHCP6_STATE_STATEFUL_RENEWING){
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_timeout(): retrying renew\n"));
+    if (dhcp6->tries <= 5) {
+      dhcp6_stateful_renew(netif);
+    }
+  }
+  else if (dhcp6->state == DHCP6_STATE_STATEFUL_REBINDING){
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_timeout(): retrying rebind\n"));
+    if (dhcp6->tries <= 5) {
+      dhcp6_stateful_rebind(netif);
+    }
+  }
+  else if (dhcp6->state == DHCP6_STATE_STATEFUL_CONFIRMING) {
+    LWIP_DEBUGF(DHCP6_DEBUG | LWIP_DBG_TRACE, ("dhcp6_timeout(): retrying confirm\n"));
+    if (dhcp6->tries <= 5) {
+      dhcp6_stateful_confirm(netif);
+    } else {
+      dhcp6_stateful_abort_config(dhcp6);
+    }
   }
 #endif /* LWIP_IPV6_DHCP6_STATEFUL */
 
@@ -1262,13 +1942,14 @@ dhcp6_timeout(struct netif *netif, struct dhcp6 *dhcp6)
  *
  * A DHCPv6 server is expected to respond within a short period of time.
  * This timer checks whether an outstanding DHCPv6 request is timed out.
+ * This timer checks whether a local address is determined to be a duplicate.
  */
 void
 dhcp6_tmr(void)
 {
-  struct netif *netif;
+ struct netif *netif;
   /* loop through netif's */
-  NETIF_FOREACH(netif) {
+  NETIF_FOREACH(netif) { 
     struct dhcp6 *dhcp6 = netif_dhcp6_data(netif);
     /* only act on DHCPv6 configured interfaces */
     if (dhcp6 != NULL) {
@@ -1282,8 +1963,16 @@ dhcp6_tmr(void)
         /* this client's request timeout triggered */
         dhcp6_timeout(netif, dhcp6);
       }
+      /* If a local address has been determined to be a duplicate, then sends a  
+       * Decline message to the server to inform it that the address is suspect */
+      for (int i = 1; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+        if(ip6_addr_isduplicated(netif_ip6_addr_state(netif, i))){
+          dhcp6_stateful_decline(netif);
+          dhcp6_enable(netif);
+          dhcp6_stateful_solicit(netif);  
+        }
+      }
     }
   }
 }
-
 #endif /* LWIP_IPV6 && LWIP_IPV6_DHCP6 */

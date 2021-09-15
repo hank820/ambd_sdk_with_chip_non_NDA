@@ -50,7 +50,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#if LWIP_IPV6_DHCP6_STATEFUL
+/** period (in seconds) of the application calling dhcp6_lease_tmr() */
+#define DHCP6_LEASE_TIMER_SECS  60
+  
+/** period (in milliseconds) of the application calling dhcp6_lease_tmr() */
+#define DHCP6_LEASE_TIMER_MSECS (DHCP6_LEASE_TIMER_SECS * 1000UL)
+#endif
 /** period (in milliseconds) of the application calling dhcp6_tmr() */
 #define DHCP6_TIMER_MSECS   500
 
@@ -70,10 +76,23 @@ struct dhcp6
   u16_t request_timeout;
 #if LWIP_IPV6_DHCP6_STATEFUL
   /* @todo: add more members here to keep track of stateful DHCPv6 data, like lease times */
-  u8_t *server_id_buf;
+  u8_t server_id_buf[150];
   u16_t server_id_len;
-  u8_t *ia_na_buf;
+  u8_t ia_na_buf[100];
   u16_t ia_na_len;
+  
+  u16_t t1_timeout;  /* #ticks with period DHCP6_LEASE_TIMER_SECS for renewal time */
+  u16_t t2_timeout;  /* #ticks with period DHCP6_LEASE_TIMER_SECS for rebind time */
+  u16_t t1_renew_time;  /* #ticks with period DHCP6_LEASE_TIMER_SECS until next renew try */
+  u16_t t2_rebind_time; /* #ticks with period DHCP6_LEASE_TIMER_SECS until next rebind try */
+  u16_t lease_used; /* #ticks with period DHCP6_LEASE_TIMER_SECS since last received DHCPV6 ack */
+  u16_t t0_timeout; /* #ticks with period DHCP6_LEASE_TIMER_SECS for lease time */
+
+  ip6_addr_t offered_ip6_addr;
+  
+  u32_t offered_t0_lease; /* lease period (in seconds) */
+  u32_t offered_t1_renew; /* recommended renew time (usually 50% of lease period) */
+  u32_t offered_t2_rebind; /* recommended rebind time (usually 87.5 of lease period)  */
 
 #endif /* LWIP_IPV6_DHCP6_STATEFUL */
 };
@@ -83,12 +102,15 @@ void dhcp6_set_struct(struct netif *netif, struct dhcp6 *dhcp6);
 #define dhcp6_remove_struct(netif) netif_set_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_DHCP6, NULL)
 void dhcp6_cleanup(struct netif *netif);
 
-err_t dhcp6_enable_stateful(struct netif *netif);
-err_t dhcp6_enable_stateless(struct netif *netif);
+//err_t dhcp6_enable_stateful(struct netif *netif);
+//err_t dhcp6_enable_stateless(struct netif *netif);
+err_t dhcp6_enable(struct netif *netif);
 void dhcp6_disable(struct netif *netif);
-
+void dhcp6_stop(struct netif *netif);
 void dhcp6_tmr(void);
-
+void dhcp6_network_changed(struct netif *netif);
+void dhcp6_lease_tmr(void);
+err_t dhcp6_release(struct netif *netif);  
 void dhcp6_nd6_ra_trigger(struct netif *netif, u8_t managed_addr_config, u8_t other_config);
 
 #if LWIP_DHCP6_GET_NTP_SRV
