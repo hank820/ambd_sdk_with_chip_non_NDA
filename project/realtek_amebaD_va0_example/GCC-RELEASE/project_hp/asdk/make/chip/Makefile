@@ -18,6 +18,7 @@ OBJS =
 #*****************************************************************************#
 -include $(OBJS:.o=.d)
 
+GLOBAL_CFLAGS += -I$(BASEDIR)/component/common/bluetooth/realtek/sdk/example/bt_matter_adapter
 
 #*****************************************************************************#
 #                        RULES TO GENERATE TARGETS                            #

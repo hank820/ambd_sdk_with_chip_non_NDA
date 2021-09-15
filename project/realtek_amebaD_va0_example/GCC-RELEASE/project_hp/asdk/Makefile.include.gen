@@ -257,6 +257,7 @@ include  $(ABS_ROOTDIR)/Makefile.include.bt.gen
 endif 
 #BT config
 IFLAGS               += -I$(BASEDIR)/component/common/bluetooth/realtek/sdk/example/bt_config
+IFLAGS               += -I$(BASEDIR)/component/common/bluetooth/realtek/sdk/example/bt_matter_adapter
 
 
 #*****************************************************************************#

@@ -10,6 +10,7 @@
 #include "errno.h"
 #include <sntp/sntp.h>
 #include "dct.h"
+#include <wifi_conf.h>
 
 #define MICROSECONDS_PER_SECOND    ( 1000000LL )                                   /**< Microseconds per second. */
 #define NANOSECONDS_PER_SECOND     ( 1000000000LL )                                /**< Nanoseconds per second. */
@@ -128,6 +129,7 @@ int _vTaskDelay( const TickType_t xTicksToDelay )
 #define VARIABLE_NAME_SIZE      32                /*!< max size of the variable name */
 #define VARIABLE_VALUE_SIZE     1860 + 4          /*!< max size of the variable value
                                                   /*!< max value number in moudle = 4024 / (32 + 1860+4) = 2 */
+
 #define ENABLE_BACKUP           1
 #define ENABLE_WEAR_LEVELING    0
 
@@ -198,6 +200,7 @@ int32_t deleteKey(char *domain, char *key)
         printf("%s : dct_delete_variable(%s) failed\n",__FUNCTION__,key);
 
     dct_close_module(&handle);
+    dct_unregister_module(key);
 
 exit:
     return (DCT_SUCCESS == ret ? 1 : 0);
@@ -208,26 +211,28 @@ bool checkExist(char *domain, char *key)
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t DataLen = 0;
-    char Data[VARIABLE_VALUE_SIZE];
+    uint8_t *str = malloc(sizeof(uint8_t) * VARIABLE_VALUE_SIZE);
 
     ret = dct_open_module(&handle, key);
     if (ret != DCT_SUCCESS){
         printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
-        registerPref(key);
-        dct_open_module(&handle, key);
         goto exit;
     }
 
-    memset(Data, 0, sizeof(Data));
-    DataLen = sizeof(Data);
-    ret = dct_get_variable_new(&handle,key ,Data,&DataLen);
+    ret = dct_get_variable_new(&handle, key, str, &DataLen);
+
     if(ret == DCT_ERR_NOT_FIND)
         printf("%s not found.\n", key);
+    else if(ret == DCT_SUCCESS)
+        printf("%s found.\n", key);
+    else
+        goto exit;
 
-exit:
     dct_close_module(&handle);
 
-    return (DCT_ERR_NOT_FIND != ret ? 1 : 0);
+exit:
+    free(str);
+    return (DCT_SUCCESS == ret ? 1 : 0);
 }
 
 int32_t setPref_new(char *domain, char *key, uint8_t *value, size_t byteCount)
@@ -278,7 +283,7 @@ int32_t getPref_bool_new(char *domain, char *key, uint32_t *val)
     if (DCT_SUCCESS != ret)
     {
         printf("%s : dct_open_module(%s) failed\n",__FUNCTION__,key);
-        return exit;
+        goto exit;
     }
 
     len = sizeof(uint32_t);
@@ -357,7 +362,7 @@ int32_t getPref_str_new(char *domain, char *key, char * buf, size_t bufSize, siz
     if (DCT_SUCCESS != ret)
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
 
-    *outLen = bufSize;
+    outLen = bufSize;
 
     dct_close_module(&handle);
 
@@ -370,6 +375,7 @@ int32_t getPref_bin_new(char *domain, char *key, uint8_t * buf, size_t bufSize, 
     dct_handle_t handle;
     int32_t ret = -1;
     uint16_t _bufSize = bufSize;
+
     ret = dct_open_module(&handle, key);
     if (DCT_SUCCESS != ret)
     {
@@ -381,13 +387,32 @@ int32_t getPref_bin_new(char *domain, char *key, uint8_t * buf, size_t bufSize, 
     if (DCT_SUCCESS != ret)
         printf("%s : dct_get_variable(%s) failed\n",__FUNCTION__,key);
 
-    *outLen = bufSize;
+    outLen = bufSize;
 
     dct_close_module(&handle);
 
 exit:
     return (DCT_SUCCESS == ret ? 1 : 0);
 }
+
+rtw_wifi_setting_t chip_wifi_setting = {0};
+int CHIP_SetWiFiConfig(rtw_wifi_setting_t *config)
+{
+	//printf("%s %d %s %sToDo\r\n", __func__,__LINE__, config->ssid, config->password);
+	if(config)
+		memcpy(&chip_wifi_setting, config, sizeof(chip_wifi_setting));
+	return 0;
+}
+
+int CHIP_GetWiFiConfig(rtw_wifi_setting_t *config)
+{
+	//printf("%s %d %s %sToDo\r\n", __func__,__LINE__, chip_wifi_setting.ssid, chip_wifi_setting.password);
+	if(config)
+		memcpy(config, &chip_wifi_setting, sizeof(chip_wifi_setting));
+	//printf("%s %d %s %sToDo\r\n", __func__,__LINE__, config->ssid, config->password);
+	return 0;
+}
+
 
 #ifdef __cplusplus
 }

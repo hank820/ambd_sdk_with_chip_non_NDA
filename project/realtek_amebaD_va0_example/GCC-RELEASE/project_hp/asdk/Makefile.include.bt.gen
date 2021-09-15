@@ -23,6 +23,7 @@ IFLAGS += \
 IFLAGS += \
    -I$(BLEDIR)/sdk/example/ble_peripheral \
    -I$(BLEDIR)/sdk/example/ble_central \
+   -I$(BLEDIR)/sdk/example/bt_matter_adapter \
    -I$(BLEDIR)/sdk/example/ble_scatternet \
    -I$(BLEDIR)/sdk/example/bt_beacon \
    -I$(BLEDIR)/sdk/example/bt_config \

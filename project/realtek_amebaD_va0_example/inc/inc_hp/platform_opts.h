@@ -114,7 +114,7 @@
 #define CONFIG_INCLUDE_SIMPLE_CONFIG		1
 
 /*For fast reconnection*/
-#define CONFIG_EXAMPLE_WLAN_FAST_CONNECT	1
+#define CONFIG_EXAMPLE_WLAN_FAST_CONNECT	0
 
 /*For wowlan service settings*/
 #define CONFIG_WOWLAN_SERVICE           			0
@@ -132,7 +132,7 @@
 /*For MIMO pkt decode*/
 #define CONFIG_UNSUPPORT_PLCPHDR_RPT	0
 
-#define CONFIG_EXAMPLE_CM_BACKTRACE 0
+#define CONFIG_EXAMPLE_CM_BACKTRACE 1
 
 #endif //end of #if CONFIG_WLAN
 /*******************************************************************************/
