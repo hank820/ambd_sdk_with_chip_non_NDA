@@ -298,7 +298,11 @@ static u8_t                   dns_last_pcb_idx;
 static u8_t                   dns_seqno;
 static struct dns_table_entry dns_table[DNS_TABLE_SIZE];
 static struct dns_req_entry   dns_requests[DNS_MAX_REQUESTS];
+#if LWIP_IPV4 && LWIP_IPV6
+static ip_addr_t              dns_servers[DNS_IPV4_IPV6_MAX_SERVERS];
+#else
 static ip_addr_t              dns_servers[DNS_MAX_SERVERS];
+#endif
 
 #if LWIP_IPV4
 const ip_addr_t dns_mquery_v4group = DNS_MQUERY_IPV4_GROUP_INIT;
@@ -360,7 +364,11 @@ dns_init(void)
 void
 dns_setserver(u8_t numdns, const ip_addr_t *dnsserver)
 {
+#if LWIP_IPV4 && LWIP_IPV6
+  if (numdns < DNS_IPV4_IPV6_MAX_SERVERS) {
+#else
   if (numdns < DNS_MAX_SERVERS) {
+#endif
     if (dnsserver != NULL) {
       dns_servers[numdns] = (*dnsserver);
     } else {

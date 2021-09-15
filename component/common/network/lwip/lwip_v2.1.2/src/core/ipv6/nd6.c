@@ -134,7 +134,7 @@ static void nd6_free_q(struct nd6_q_entry *q);
 #define nd6_free_q(q) pbuf_free(q)
 #endif /* LWIP_ND6_QUEUEING */
 static void nd6_send_q(s8_t i);
-
+void nd6_restart_netif(struct netif *netif);
 
 /**
  * A local address has been determined to be a duplicate. Take the appropriate
@@ -766,7 +766,12 @@ nd6_input(struct pbuf *p, struct netif *inp)
 
         rdnss_opt = (struct rdnss_option *)buffer;
         num = (rdnss_opt->length - 1) / 2;
+#if LWIP_IPV4 && LWIP_IPV6
+        rdnss_server_idx = DNS_MAX_SERVERS;
+        for (n = 0; (rdnss_server_idx < DNS_IPV4_IPV6_MAX_SERVERS) && (n < num); n++) {
+#else
         for (n = 0; (rdnss_server_idx < DNS_MAX_SERVERS) && (n < num); n++) {
+#endif
           ip_addr_t rdnss_address;
 
           /* Copy directly from pbuf to get an aligned, zoned copy of the prefix. */
@@ -780,7 +785,11 @@ nd6_input(struct pbuf *p, struct netif *inp)
             } else {
               /* TODO implement DNS removal in dns.c */
               u8_t s;
+#if LWIP_IPV4 && LWIP_IPV6
+              for (s = DNS_MAX_SERVERS; s < DNS_IPV4_IPV6_MAX_SERVERS; s++) {
+#else
               for (s = 0; s < DNS_MAX_SERVERS; s++) {
+#endif
                 const ip_addr_t *addr = dns_getserver(s);
                 if(ip_addr_cmp(addr, &rdnss_address)) {
                   dns_setserver(s, NULL);
@@ -1126,6 +1135,15 @@ nd6_tmr(void)
 #endif /* LWIP_IPV6_ADDRESS_LIFETIMES */
           netif_ip6_addr_set_state(netif, i, addr_state);
         } else if (netif_is_up(netif) && netif_is_link_up(netif)) {
+/* Added by Realtek start */
+#if LWIP_IPV6_MLD
+          if ((netif->ip6_addr_state[i] & 0x07) == 0) {
+            /* Join solicited node multicast group. */
+            ip6_addr_set_solicitednode(&multicast_address, netif_ip6_addr(netif, i)->addr[3]);
+            mld6_joingroup(netif_ip6_addr(netif, i), &multicast_address);
+          }
+#endif /* LWIP_IPV6_MLD */
+/* Added by Realtek end */
           /* tentative: set next state by increasing by one */
           netif_ip6_addr_set_state(netif, i, addr_state + 1);
           /* Send a NS for this address. Use the unspecified address as source
@@ -1149,6 +1167,9 @@ nd6_tmr(void)
           !ip6_addr_isduplicated(netif_ip6_addr_state(netif, 0))) {
         if (nd6_send_rs(netif) == ERR_OK) {
           netif->rs_count--;
+          if (netif->rs_count == 0){
+            netif->rs_timeout = 1;
+          }
         }
       }
     }
@@ -2428,6 +2449,7 @@ nd6_restart_netif(struct netif *netif)
 #if LWIP_IPV6_SEND_ROUTER_SOLICIT
   /* Send Router Solicitation messages (see RFC 4861, ch. 6.3.7). */
   netif->rs_count = LWIP_ND6_MAX_MULTICAST_SOLICIT;
+  netif->rs_timeout = 0;
 #endif /* LWIP_IPV6_SEND_ROUTER_SOLICIT */
 }
 

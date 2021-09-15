@@ -1823,6 +1823,10 @@ tcp_output_alloc_header_common(u32_t ackno, u16_t optlen, u16_t datalen,
   struct pbuf *p;
 
   p = pbuf_alloc(PBUF_IP, TCP_HLEN + optlen + datalen, PBUF_RAM);
+  if (p == NULL) {
+    p = pbuf_alloc(PBUF_IP, TCP_HLEN + optlen + datalen, PBUF_POOL);		//Realtek add
+  }
+  
   if (p != NULL) {
     LWIP_ASSERT("check that first pbuf can hold struct tcp_hdr",
                 (p->len >= TCP_HLEN + optlen));

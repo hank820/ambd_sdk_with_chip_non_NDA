@@ -188,9 +188,11 @@ raw_input(struct pbuf *p, struct netif *inp)
           }
           return RAW_INPUT_EATEN;
         } else {
+#ifndef LWIP_NOASSERT    // Added by Realtek
           /* sanity-check that the receive callback did not alter the pbuf */
           LWIP_ASSERT("raw pcb recv callback altered pbuf payload pointer without eating packet",
-                      p->payload == old_payload);
+            p->payload == old_payload);
+#endif    // Added by Realtek
         }
       }
       /* no receive callback function was set for this raw PCB */
