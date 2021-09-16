@@ -921,6 +921,7 @@ void TestBase64(const char * test)
     printf("\n");
 }
 
+#if 0
 extern void ChipTest(void);
 extern int32_t deinitPref(void);
 void chipapp(void *param)
@@ -936,6 +937,7 @@ void fATchipapp(void *arg)
                                 4096 / sizeof(StackType_t), NULL,
                                 1, NULL);
 }
+#endif
 
 void fATSt(void *arg)
 {
@@ -1725,7 +1727,7 @@ log_item_t at_sys_items[] = {
 	{"ATS@", fATSs,{NULL,NULL}},	// Debug message setting
 	{"ATS!", fATSc,{NULL,NULL}},	// Debug config setting
 	{"ATS#", fATSt,{NULL,NULL}},	// test command
-	{"ATS$", fATchipapp, {NULL, NULL}},
+	//{"ATS$", fATchipapp, {NULL, NULL}},
 	{"ATS?", fATSx,{NULL,NULL}},	// Help
 #if WIFI_LOGO_CERTIFICATION_CONFIG
 	{"ATSV", fATSV},				// Write SW version for wifi logo test
