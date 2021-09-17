@@ -142,17 +142,17 @@ image2_ns:LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_wlan.a $(ROOTDIR)/lib/a
 mp_image2_ns:LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_wlan_mp.a $(ROOTDIR)/lib/application/lib_wps.a
 endif
 
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libRawTransportTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libTransportLayerTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libNetworkTestHelpers.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libCoreTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libInetLayerTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libInetTestHelpers.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libMessagingLayerTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libSupportTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libSystemLayerTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libChipCryptoTests.a
-LINK_APP_LIB += $(ROOTDIR)/lib/application/libnlunit-test.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libRawTransportTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libTransportLayerTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libNetworkTestHelpers.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libCoreTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libInetLayerTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libInetTestHelpers.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libMessagingLayerTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libSupportTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libSystemLayerTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libChipCryptoTests.a
+#LINK_APP_LIB += $(ROOTDIR)/lib/application/libnlunit-test.a
 LINK_APP_LIB += $(ROOTDIR)/lib/application/lib_main.a
 LINK_APP_LIB += $(ROOTDIR)/lib/application/libCHIP.a
 
