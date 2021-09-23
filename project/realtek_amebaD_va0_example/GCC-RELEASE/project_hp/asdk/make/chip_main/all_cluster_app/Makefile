@@ -32,6 +32,7 @@ DIR += $(CHIPDIR)/src/app
 DIR += $(CHIPDIR)/src/app/server
 DIR += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common
 DIR += $(CHIPDIR)/examples/all-clusters-app/ambd/main
+DIR += $(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated
 
 vpath %.cpp $(DIR) $(shell find $(DIR) -type d)
 vpath %.c $(DIR) $(shell find $(DIR) -type d)
@@ -48,6 +49,7 @@ GLOBAL_CFLAGS += -DCHIP_DEVICE_LAYER_TARGET=AMBD
 GLOBAL_CFLAGS += -DUSE_ZAP_CONFIG
 GLOBAL_CFLAGS += -DCHIP_HAVE_CONFIG_H
 GLOBAL_CFLAGS += -DLWIP_IPV6_SCOPES=0
+GLOBAL_CFLAGS += -DLWIP_IPV6_ND=1
 GLOBAL_CFLAGS += -DLWIP_PBUF_FROM_CUSTOM_POOLS=0
 
 GLOBAL_CFLAGS += -DCHIP_DEVICE_LAYER_NONE=0
@@ -65,6 +67,11 @@ CPPFLAGS += -Wno-unused-parameter
 #*****************************************************************************#
 
 #IFLAGS = -I$(DIR)./
+IFLAGS += -I$(CHIPDIR)/zzz_generated/all-clusters-app
+IFLAGS += -I$(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated
+IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/all-clusters-common
+IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/ambd/main/include
+IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/ambd/build/chip/gen/include
 IFLAGS += -I$(CHIPDIR)/src/include/
 IFLAGS += -I$(CHIPDIR)/src/lib/
 IFLAGS += -I$(CHIPDIR)/src/
@@ -72,11 +79,8 @@ IFLAGS += -I$(CHIPDIR)/third_party/nlassert/repo/include/
 IFLAGS += -I$(CHIPDIR)/src/app/
 IFLAGS += -I$(CHIPDIR)/src/app/util/
 IFLAGS += -I$(CHIPDIR)/src/app/server/
+IFLAGS += -I$(CHIPDIR)/src/controller/data_model
 IFLAGS += -I$(CHIPDIR)/third_party/nlio/repo/include/
-IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/all-clusters-common
-IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen
-IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/ambd/main/include
-IFLAGS += -I$(CHIPDIR)/examples/all-clusters-app/ambd/build/chip/gen/include
 IFLAGS += -I$(CHIPDIR)/third_party/nlunit-test/repo/src
 
 
@@ -165,12 +169,11 @@ CPPSRC += $(CHIPDIR)/src/app/reporting/reporting-default-configuration.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/reporting.cpp
 CPPSRC += $(CHIPDIR)/src/app/reporting/Engine.cpp
 
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/attribute-size.cpp
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClientCallbacks.cpp
-#CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/call-command-handler.cpp              #Base0608
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/callback-stub.cpp
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/IMClusterCommandHandler.cpp
-CPPSRC += $(CHIPDIR)/examples/all-clusters-app/all-clusters-common/gen/CHIPClusters.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated/attribute-size.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated/CHIPClientCallbacks.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated/callback-stub.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated/IMClusterCommandHandler.cpp
+CPPSRC += $(CHIPDIR)/zzz_generated/all-clusters-app/zap-generated/CHIPClusters.cpp
 
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/chipinterface.cpp
 CPPSRC += $(CHIPDIR)/examples/all-clusters-app/ambd/main/DeviceCallbacks.cpp
